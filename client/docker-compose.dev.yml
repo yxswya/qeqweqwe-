@@ -1,0 +1,12 @@
+name: 'ai-core'
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - '3002:5175'
+    volumes:
+      - .:/app
+      - /app/node_modules

@@ -1,0 +1,40 @@
+{
+  "name": "ai-core",
+  "type": "module",
+  "version": "2.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "build:dev": "tsc -b && vite build --mode development",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@elysiajs/eden": "^1.4.8",
+    "@tailwindcss/vite": "^4.1.18",
+    "axios": "1.13.5",
+    "lucide-react": "^0.575.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router": "^7.13.0",
+    "tailwindcss": "^4.1.18",
+    "zustand": "^5.0.11"
+  },
+  "devDependencies": {
+    "@antfu/eslint-config": "^7.6.1",
+    "@eslint-react/eslint-plugin": "^2.13.0",
+    "@types/node": "^24.10.1",
+    "@types/react": "^19.2.5",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.1",
+    "babel-plugin-react-compiler": "^1.0.0",
+    "eslint": "^10.0.2",
+    "globals": "^16.5.0",
+    "typescript": "~5.9.3",
+    "vite": "npm:rolldown-vite@7.2.5"
+  },
+  "overrides": {
+    "vite": "npm:rolldown-vite@7.2.5"
+  }
+}
