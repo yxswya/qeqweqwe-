@@ -50,6 +50,23 @@ async function saveBotMessageToDB(
   }
 }
 
+export async function appendBotMessage(
+  conversationId: string, // 会话id
+  preMessageId: string, // 前一个消息id
+  botMessageId: string, // 自身消息id
+  content: string, // 消息内容
+) {
+  const eventName = `chat:${conversationId}`
+  const { result } = await saveBotMessageToDB(conversationId, preMessageId, botMessageId, content)
+
+  logger.info(`[会话 ${conversationId}] 机器人回复已保存，消息ID: ${botMessageId}`)
+
+  eventBus.emit(eventName, {
+    type: 'NEW_BOT_MESSAGE',
+    data: { id: botMessageId, content: result },
+  })
+}
+
 /**
  * 后台处理机器人回复
  * 不阻塞主线程，异步处理 AI 服务调用

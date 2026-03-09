@@ -9,7 +9,7 @@ import { logger } from '../logger'
 import { execRagBuild } from '../rag-build'
 import { execRagBuildSync } from '../rag-build-sync'
 import { conversations, messages, ragBuilds } from '../schema'
-import { processBotReplyInBackground } from '../services/bot.service'
+import { appendBotMessage, processBotReplyInBackground } from '../services/bot.service'
 import { startRagBuildPolling } from '../services/rag-build-poll.service'
 
 // 上传目录配置
@@ -141,9 +141,15 @@ export const messageRoutes = new Elysia()
         }
       }
       else {
+        const botPreBuildMessageId = crypto.randomUUID()
+        appendBotMessage(
+          conversation_id,
+          body.message_id,
+          botPreBuildMessageId,
+          `文件尺寸约为: ${(totalSize / 1024 / 1024).toFixed(2)} MB,已采用 同步构建的方式进行处理`,
+        )
         // 小文件：使用同步处理
         const result = await execRagBuild(filePaths)
-
         if (!result?.answer) {
           return { success: false, error: 'RAG build failed' }
         }
@@ -158,6 +164,14 @@ export const messageRoutes = new Elysia()
           })
 
           if (existing) {
+            const botNextBuildMessageId = crypto.randomUUID()
+            appendBotMessage(
+              conversation_id,
+              botPreBuildMessageId,
+              botNextBuildMessageId,
+              `知识库重复构建`,
+            )
+
             return { success: true, data: existing, cached: true }
           }
         }
@@ -184,12 +198,20 @@ export const messageRoutes = new Elysia()
 
         const inserted = await db.insert(ragBuilds).values(ragBuildData).returning()
 
+        const botNextBuildMessageId = crypto.randomUUID()
+        appendBotMessage(
+          conversation_id,
+          botPreBuildMessageId,
+          botNextBuildMessageId,
+          `知识库构建成功${JSON.stringify(ragBuildData)}`,
+        )
         return { success: true, data: inserted[0], cached: false, async: false }
       }
     },
     {
       body: t.Object({
         file_paths: t.Array(t.String()),
+        message_id: t.String(),
       }),
     },
   )
