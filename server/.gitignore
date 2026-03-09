@@ -43,8 +43,11 @@ package-lock.json
 
 # project specific
 parse-pipeline_*.json
+rag-build_*.json
+rag-status_*.json
 logs/
 *.exe
 
 drizzle/*
 sqlite.db
+uploads/

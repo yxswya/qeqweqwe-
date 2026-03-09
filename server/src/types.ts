@@ -153,9 +153,47 @@ export interface RagBuildResponse {
 
 // /api/exec/rag/submit 返回结果
 export interface RagBuildSyncResponse {
+  job_id: string
+}
+
+// /api/exec/rag/status 返回结果（进行中）
+export interface RagBuildStatusResponse {
+  code: number
+  message: string
   data: {
-    job_id: string
+    answer: {
+      id: string
+      state: 'pending' | 'running' | 'succeeded' | 'failed'
+      progress: number
+      error: string | null
+      result: Record<string, unknown>
+      submitted_at: number
+      started_at: number | null
+      finished_at: number | null
+      log_path: string
+    }
   }
+  trace_id: string
+}
+
+// /api/exec/rag/status 返回结果（完成）
+export interface RagBuildStatusSuccessResponse {
+  code: number
+  message: string
+  data: {
+    answer: {
+      id: string
+      state: 'succeeded'
+      progress: 1.0
+      error: null
+      result: RagBuildResponse['answer']
+      submitted_at: number
+      started_at: number
+      finished_at: number
+      log_path: string
+    }
+  }
+  trace_id: string
 }
 
 // /api/exec/rag/answer

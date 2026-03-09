@@ -10,6 +10,7 @@ import { execRagBuild } from '../rag-build'
 import { execRagBuildSync } from '../rag-build-sync'
 import { conversations, messages, ragBuilds } from '../schema'
 import { processBotReplyInBackground } from '../services/bot.service'
+import { startRagBuildPolling } from '../services/rag-build-poll.service'
 
 // 上传目录配置
 const UPLOAD_DIR = join(cwd(), 'uploads')
@@ -60,101 +61,135 @@ export const messageRoutes = new Elysia()
 
     return { userId }
   })
-  // .post('/conversations/:id/rag/build', async ({ params: { id: conversation_id } }) => {
-  //   const result = await execRagBuild()
-
-//   if (!result?.answer) {
-//     return { success: false, error: 'RAG build failed' }
-//   }
-
-//   const { answer } = result
-//   const indexVersion = answer.artifacts.index_version
-
-//   // 如果是缓存的结果，检查数据库中是否已存在
-//   if (answer.cached) {
-//     const existing = await db.query.ragBuilds.findFirst({
-//       where: eq(ragBuilds.indexVersion, indexVersion),
-//     })
-
-//     if (existing) {
-//       return { success: true, data: existing, cached: true }
-//     }
-//   }
-
-//   const ragBuildData = {
-//     conversationId: conversation_id,
-//     runId: indexVersion, // 使用 index_version 作为运行 ID
-//     indexVersion,
-//     indexUri: answer.artifacts.index_uri,
-//     manifestUri: answer.artifacts.manifest_uri,
-//     embedder: answer.artifacts.embedder,
-//     metric: answer.artifacts.metric,
-//     dim: answer.artifacts.dim,
-//     elapsedMs: answer.elapsed_ms,
-//     cached: answer.cached,
-//     stats: {
-//       datasetSummary: answer.stats.dataset_summary,
-//       chunkDistribution: answer.stats.chunk_distribution,
-//       embeddingDim: answer.stats.embedding_dim,
-//       embeddingModel: answer.stats.embedding_model,
-//     },
-//     createdAt: new Date(),
-//   }
-
-//   const inserted = await db.insert(ragBuilds).values(ragBuildData).returning()
-
-  //   return { success: true, data: inserted[0], cached: false }
-  // })
   .post(
     '/conversations/:id/rag/build',
     async ({ params: { id: conversation_id }, body }) => {
-      const result = await execRagBuild(body.dataset_ids)
+      // 将文件路径转换为完整路径并计算总大小
+      const filePaths = body.file_paths.map(path => join(cwd(), path.replace(/^\//, '')))
+      let totalSize = 0
 
-      if (!result?.answer) {
-        return { success: false, error: 'RAG build failed' }
-      }
-
-      const { answer } = result
-      const indexVersion = answer.artifacts.index_version
-
-      // 如果是缓存的结果，检查数据库中是否已存在
-      if (answer.cached) {
-        const existing = await db.query.ragBuilds.findFirst({
-          where: eq(ragBuilds.indexVersion, indexVersion),
-        })
-
-        if (existing) {
-          return { success: true, data: existing, cached: true }
+      // 计算所有文件的总大小
+      for (const filePath of filePaths) {
+        try {
+          const stats = await stat(filePath)
+          totalSize += stats.size
+        }
+        catch (error) {
+          logger.error(`Failed to get file size for ${filePath}:`, error)
         }
       }
 
-      const ragBuildData = {
-        conversationId: conversation_id,
-        runId: indexVersion, // 使用 index_version 作为运行 ID
-        indexVersion,
-        indexUri: answer.artifacts.index_uri,
-        manifestUri: answer.artifacts.manifest_uri,
-        embedder: answer.artifacts.embedder,
-        metric: answer.artifacts.metric,
-        dim: answer.artifacts.dim,
-        elapsedMs: answer.elapsed_ms,
-        cached: answer.cached,
-        stats: {
-          datasetSummary: answer.stats.dataset_summary,
-          chunkDistribution: answer.stats.chunk_distribution,
-          embeddingDim: answer.stats.embedding_dim,
-          embeddingModel: answer.stats.embedding_model,
-        },
-        createdAt: new Date(),
+      logger.info(`Total file size: ${(totalSize / 1024 / 1024).toFixed(2)} MB`)
+
+      // 2MB 阈值
+      const SIZE_THRESHOLD = 2 * 1024 * 1024
+
+      // 根据文件大小选择调用不同的函数
+      if (totalSize > SIZE_THRESHOLD) {
+        // 大文件：使用异步提交
+        const syncResult = await execRagBuildSync(filePaths)
+
+        if (!syncResult?.job_id) {
+          return { success: false, error: 'RAG build failed' }
+        }
+
+        const jobId = syncResult.job_id
+        logger.info(`RAG build job submitted: ${jobId}`)
+
+        // 保存异步任务信息
+        const ragBuildData = {
+          conversationId: conversation_id,
+          runId: jobId,
+          indexVersion: jobId,
+          indexUri: '',
+          manifestUri: '',
+          embedder: '',
+          metric: 'cosine' as const,
+          dim: 0,
+          elapsedMs: 0,
+          cached: false,
+          stats: {
+            datasetSummary: {
+              total: 0,
+              bytes: totalSize,
+              sources: filePaths,
+              fallback: [],
+              errors: [],
+            },
+            chunkDistribution: {
+              min: 0,
+              max: 0,
+              avg: 0,
+              count: 0,
+            },
+            embeddingDim: 0,
+            embeddingModel: '',
+          },
+          createdAt: new Date(),
+        }
+
+        const inserted = await db.insert(ragBuilds).values(ragBuildData).returning()
+
+        // 启动 RAG 构建轮询服务（后台运行，不阻塞响应）
+        startRagBuildPolling(conversation_id, jobId)
+
+        return {
+          success: true,
+          data: inserted[0],
+          async: true,
+          job_id: jobId,
+        }
       }
+      else {
+        // 小文件：使用同步处理
+        const result = await execRagBuild(filePaths)
 
-      const inserted = await db.insert(ragBuilds).values(ragBuildData).returning()
+        if (!result?.answer) {
+          return { success: false, error: 'RAG build failed' }
+        }
 
-      return { success: true, data: inserted[0], cached: false }
+        const { answer } = result
+        const indexVersion = answer.artifacts.index_version
+
+        // 如果是缓存的结果，检查数据库中是否已存在
+        if (answer.cached) {
+          const existing = await db.query.ragBuilds.findFirst({
+            where: eq(ragBuilds.indexVersion, indexVersion),
+          })
+
+          if (existing) {
+            return { success: true, data: existing, cached: true }
+          }
+        }
+
+        const ragBuildData = {
+          conversationId: conversation_id,
+          runId: indexVersion, // 使用 index_version 作为运行 ID
+          indexVersion,
+          indexUri: answer.artifacts.index_uri,
+          manifestUri: answer.artifacts.manifest_uri,
+          embedder: answer.artifacts.embedder,
+          metric: answer.artifacts.metric,
+          dim: answer.artifacts.dim,
+          elapsedMs: answer.elapsed_ms,
+          cached: answer.cached,
+          stats: {
+            datasetSummary: answer.stats.dataset_summary,
+            chunkDistribution: answer.stats.chunk_distribution,
+            embeddingDim: answer.stats.embedding_dim,
+            embeddingModel: answer.stats.embedding_model,
+          },
+          createdAt: new Date(),
+        }
+
+        const inserted = await db.insert(ragBuilds).values(ragBuildData).returning()
+
+        return { success: true, data: inserted[0], cached: false, async: false }
+      }
     },
     {
       body: t.Object({
-        dataset_ids: t.Array(t.String()),
+        file_paths: t.Array(t.String()),
       }),
     },
   )

@@ -20,7 +20,6 @@ export async function parsePipeLine(text: string, session_id: string) {
       }),
     })
     const res_1 = await res.json()
-    console.log(res_1)
 
     // 保存响应数据到文件用于调试
     const filename = `parse-pipeline_${Date.now()}.json`

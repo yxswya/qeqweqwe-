@@ -29,13 +29,16 @@ export const chatRoutes = new Elysia({ prefix: '/api' })
     return `Sign in as ${value}`
   })
   // JWT 认证中间件（应用于后续所有路由）
-  .derive(async ({ jwt, cookie: { auth }, status }) => {
+  .onBeforeHandle(async ({ jwt, cookie: { auth }, set }) => {
+    const profile = await jwt.verify(auth.value as string)
+    if (!profile) {
+      set.status = 401
+      throw new Error('Unauthorized')
+    }
+  })
+  .derive(async ({ jwt, cookie: { auth } }) => {
     const profile = await jwt.verify(auth.value as string)
     const userId = profile?.name as string
-
-    if (!profile)
-      return status(401, 'Unauthorized')
-
     return { userId }
   })
   // 子路由（继承认证上下文）
