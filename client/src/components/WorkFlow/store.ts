@@ -108,27 +108,25 @@ export const useStore = create<{
           newMessages.push({ ...message })
         }
 
-        if (
-          hasAnswer(content)
-          && Array.isArray(content.answer?.clarification_questions)
-          && content.answer?.clarification_questions.length > 0
-        ) {
-          set({
-            status: 'questions',
-            clarificationQuestions: content.answer.clarification_questions,
-            messages: newMessages,
-          })
-        }
-        else if (
-          typeof content !== 'string'
-          && !hasAnswer(content)
-          && content.workflow_hint.stage === 'need_more_info'
-        ) {
-          set({
-            status: 'input',
-            clarificationQuestions: [],
-            messages: newMessages,
-          })
+        if (typeof content === 'string' && content[0] === '{') {
+          if (
+            hasAnswer(content)
+            && Array.isArray(content.answer?.clarification_questions)
+            && content.answer?.clarification_questions.length > 0
+          ) {
+            set({
+              status: 'questions',
+              clarificationQuestions: content.answer.clarification_questions,
+              messages: newMessages,
+            })
+          }
+          else {
+            set({
+              status: 'input',
+              clarificationQuestions: [],
+              messages: newMessages,
+            })
+          }
         }
         else {
           set({

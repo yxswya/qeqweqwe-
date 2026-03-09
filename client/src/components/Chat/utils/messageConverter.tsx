@@ -22,22 +22,27 @@ export function getComponent(message: Message) {
   }
 
   if (message.content === 'RAG_BUILD_INDEX') {
-    return <RagSimple />
+    return <RagSimple message={message} />
   }
 
-  try {
-    const content = JSON.parse(message.content) as ApiResponse
+  if (message.content[0] === '{') {
+    try {
+      const content = JSON.parse(message.content) as ApiResponse
 
-    if (hasAnswer(content)) {
-      return <Text content={content.answer.normalized_request.ai_summary} />
+      if (hasAnswer(content)) {
+        return <Text content={content.answer.normalized_request.ai_summary} />
+      }
+      else {
+        return <Text content={content.workflow_hint.reason} />
+      }
     }
-    else {
-      return <Text content={content.workflow_hint.reason} />
+    catch {
+      return <Text content={message.content} />
     }
   }
-  catch {
-    return <div>{message.content}</div>
-  }
+
+  return <Text content={message.content} />
+
   // if (type === MessageTypes.Transparent) {
   //   return <Text message={message} />
   // }
@@ -56,8 +61,6 @@ export function getComponent(message: Message) {
   // else if (type === MessageTypes.AssistantRagBuildIndex) {
   //   return <Rag message={message} />
   // }
-
-  return <div></div>
 }
 
 export function convertFormat(rawMessage: ChatResponse): Message {

@@ -1,5 +1,6 @@
 import type * as React from 'react'
 import type { App } from '../../../../server/src/index'
+import type { Message } from '@/components/WorkFlow/store'
 import { treaty } from '@elysiajs/eden'
 import { useEffect, useRef, useState } from 'react'
 import { useStore } from '@/components/WorkFlow/store'
@@ -18,7 +19,7 @@ interface UploadedFile {
 
 const STORAGE_KEY = 'rag_build_files'
 
-const RagSimple: React.FC = () => {
+const RagSimple: React.FC<{ message: Message }> = ({ message }) => {
   const { sessionId, ragBuildProgress, ragBuildLogs } = useStore()
   const inputRef = useRef<HTMLInputElement>(null)
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([])
@@ -116,6 +117,7 @@ const RagSimple: React.FC = () => {
     try {
       const response = await app.api.conversations({ id: sessionId }).rag.build.post({
         file_paths: filePaths,
+        message_id: message.id,
       })
 
       if (response.data?.success) {
@@ -242,7 +244,7 @@ const RagSimple: React.FC = () => {
     <div className="px-4">
       <button
         onClick={() => handleRagBuild()}
-        className="px-6 py-2.5 bg-linear-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-lg shadow-md hover:shadow-lg hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200"
+        className="font-bold underline cursor-pointer hover:text-blue-800"
       >
         Rag 构建
       </button>

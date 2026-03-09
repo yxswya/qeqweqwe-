@@ -84,26 +84,62 @@ const Questions: React.FC = () => {
 
 const RagBuildList: React.FC = () => {
   const ragBuild = useStore(state => state.ragBuild)
-  const ragBuildProgress = useStore(state => state.ragBuildProgress)
-  const ragBuildLogs = useStore(state => state.ragBuildProgress)
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleString('zh-CN', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  }
+  const formatElapsed = (ms: number) => {
+    if (ms < 1000)
+      return `${ms}ms`
+    return `${(ms / 1000).toFixed(1)}s`
+  }
+
   return (
-    <div>
+    <div className="space-y-3 p-4">
       {
         ragBuild.map((rag) => {
           return (
-            <div key={rag.id}>
-              <button
-                className="px-6 py-2.5 bg-linear-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-lg shadow-md hover:shadow-lg hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200"
-              >
-                {rag.indexVersion}
-              </button>
+            <div
+              key={rag.id}
+              className="px-4 py-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-colors cursor-pointer"
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-medium text-gray-900">{rag.indexVersion}</span>
+                <span className="text-xs text-gray-400">{formatDate(rag.createdAt)}</span>
+              </div>
+              <div className="space-y-1 text-xs text-gray-500">
+                <div className="flex items-center gap-2">
+                  <span>
+                    📄
+                    {' '}
+                    {rag.stats?.datasetSummary?.total || 0}
+                    {' '}
+                    个文档
+                  </span>
+                  <span>•</span>
+                  <span>
+                    {rag.stats?.chunkDistribution?.count || 0}
+                    {' '}
+                    个分块
+                  </span>
+                  <span>•</span>
+                  <span>{formatElapsed(rag.elapsedMs)}</span>
+                </div>
+                <div className="text-gray-400 truncate">
+                  {rag.embedder?.split('/')?.[1] || rag.embedder}
+                </div>
+              </div>
             </div>
           )
         })
       }
 
-      {JSON.stringify(ragBuildProgress)}
-      {JSON.stringify(ragBuildLogs)}
+      {/* {JSON.stringify(ragBuildProgress)}
+      {JSON.stringify(ragBuildLogs)} */}
       {/* <div className="mt-3">
         <div className="text-xs font-medium text-gray-600 mb-2">构建日志</div>
         <div className="bg-gray-900 text-gray-100 rounded p-2 max-h-40 overflow-y-auto">
