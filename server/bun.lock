@@ -9,6 +9,7 @@
         "@elysiajs/cors": "^1.4.1",
         "@elysiajs/jwt": "^1.4.1",
         "@elysiajs/openapi": "^1.4.14",
+        "@elysiajs/static": "^1.4.7",
         "drizzle-orm": "^0.45.1",
         "elysia": "latest",
         "uuid": "^13.0.0",
@@ -54,6 +55,8 @@
     "@elysiajs/jwt": ["@elysiajs/jwt@1.4.1", "https://registry.npmmirror.com/@elysiajs/jwt/-/jwt-1.4.1.tgz", { "dependencies": { "jose": "^6.0.11" }, "peerDependencies": { "elysia": ">= 1.4.27" } }, "sha512-Qx28XE7hUf2XK/+HZB+hOBGSq6dPs4u1lk80wNge9jijAfzCwftxjOiAWO57RKYSEMdJTOG1ItEL5fbXjJyWsA=="],
 
     "@elysiajs/openapi": ["@elysiajs/openapi@1.4.14", "https://registry.npmmirror.com/@elysiajs/openapi/-/openapi-1.4.14.tgz", { "peerDependencies": { "elysia": ">= 1.4.0" } }, "sha512-kWmJWdvP8/LwHwAJXSpz6xFfYUoyUyEPRimEYABuDU1rOnS27Da1u9T2jyU7frOopxKWV/wDfDxMP8z2xdCPJw=="],
+
+    "@elysiajs/static": ["@elysiajs/static@1.4.7", "https://registry.npmmirror.com/@elysiajs/static/-/static-1.4.7.tgz", { "peerDependencies": { "elysia": ">= 1.4.0" } }, "sha512-Go4kIXZ0G3iWfkAld07HmLglqIDMVXdyRKBQK/sVEjtpDdjHNb+rUIje73aDTWpZYg4PEVHUpi9v4AlNEwrQug=="],
 
     "@es-joy/jsdoccomment": ["@es-joy/jsdoccomment@0.84.0", "https://registry.npmmirror.com/@es-joy/jsdoccomment/-/jsdoccomment-0.84.0.tgz", { "dependencies": { "@types/estree": "^1.0.8", "@typescript-eslint/types": "^8.54.0", "comment-parser": "1.4.5", "esquery": "^1.7.0", "jsdoc-type-pratt-parser": "~7.1.1" } }, "sha512-0xew1CxOam0gV5OMjh2KjFQZsKL2bByX1+q4j3E73MpYIdyUxcZb/xQct9ccUb+ve5KGUYbCUxyPnYB7RbuP+w=="],
 

@@ -1,11 +1,28 @@
+import { mkdir, stat } from 'node:fs/promises'
+import { join } from 'node:path'
+import { cwd } from 'node:process'
 import { jwt } from '@elysiajs/jwt'
 import { desc, eq } from 'drizzle-orm'
 import { Elysia, t } from 'elysia'
 import { db } from '../db'
 import { logger } from '../logger'
 import { execRagBuild } from '../rag-build'
+import { execRagBuildSync } from '../rag-build-sync'
 import { conversations, messages, ragBuilds } from '../schema'
 import { processBotReplyInBackground } from '../services/bot.service'
+
+// 上传目录配置
+const UPLOAD_DIR = join(cwd(), 'uploads')
+
+// 确保上传目录存在
+async function ensureUploadDir() {
+  try {
+    await mkdir(UPLOAD_DIR, { recursive: true })
+  }
+  catch (error) {
+    logger.error('Failed to create upload directory:', error)
+  }
+}
 
 const JWT_SECRET = 'Fischl von Luftschloss Narfidort'
 
@@ -43,55 +60,55 @@ export const messageRoutes = new Elysia()
 
     return { userId }
   })
-  .post('/conversations/:id/rag/build', async ({ params: { id: conversation_id } }) => {
-    const result = await execRagBuild()
+  // .post('/conversations/:id/rag/build', async ({ params: { id: conversation_id } }) => {
+  //   const result = await execRagBuild()
 
-    if (!result?.answer) {
-      return { success: false, error: 'RAG build failed' }
-    }
+//   if (!result?.answer) {
+//     return { success: false, error: 'RAG build failed' }
+//   }
 
-    const { answer } = result
-    const indexVersion = answer.artifacts.index_version
+//   const { answer } = result
+//   const indexVersion = answer.artifacts.index_version
 
-    // 如果是缓存的结果，检查数据库中是否已存在
-    if (answer.cached) {
-      const existing = await db.query.ragBuilds.findFirst({
-        where: eq(ragBuilds.indexVersion, indexVersion),
-      })
+//   // 如果是缓存的结果，检查数据库中是否已存在
+//   if (answer.cached) {
+//     const existing = await db.query.ragBuilds.findFirst({
+//       where: eq(ragBuilds.indexVersion, indexVersion),
+//     })
 
-      if (existing) {
-        return { success: true, data: existing, cached: true }
-      }
-    }
+//     if (existing) {
+//       return { success: true, data: existing, cached: true }
+//     }
+//   }
 
-    const ragBuildData = {
-      conversationId: conversation_id,
-      runId: indexVersion, // 使用 index_version 作为运行 ID
-      indexVersion,
-      indexUri: answer.artifacts.index_uri,
-      manifestUri: answer.artifacts.manifest_uri,
-      embedder: answer.artifacts.embedder,
-      metric: answer.artifacts.metric,
-      dim: answer.artifacts.dim,
-      elapsedMs: answer.elapsed_ms,
-      cached: answer.cached,
-      stats: {
-        datasetSummary: answer.stats.dataset_summary,
-        chunkDistribution: answer.stats.chunk_distribution,
-        embeddingDim: answer.stats.embedding_dim,
-        embeddingModel: answer.stats.embedding_model,
-      },
-      createdAt: new Date(),
-    }
+//   const ragBuildData = {
+//     conversationId: conversation_id,
+//     runId: indexVersion, // 使用 index_version 作为运行 ID
+//     indexVersion,
+//     indexUri: answer.artifacts.index_uri,
+//     manifestUri: answer.artifacts.manifest_uri,
+//     embedder: answer.artifacts.embedder,
+//     metric: answer.artifacts.metric,
+//     dim: answer.artifacts.dim,
+//     elapsedMs: answer.elapsed_ms,
+//     cached: answer.cached,
+//     stats: {
+//       datasetSummary: answer.stats.dataset_summary,
+//       chunkDistribution: answer.stats.chunk_distribution,
+//       embeddingDim: answer.stats.embedding_dim,
+//       embeddingModel: answer.stats.embedding_model,
+//     },
+//     createdAt: new Date(),
+//   }
 
-    const inserted = await db.insert(ragBuilds).values(ragBuildData).returning()
+//   const inserted = await db.insert(ragBuilds).values(ragBuildData).returning()
 
-    return { success: true, data: inserted[0], cached: false }
-  })
+  //   return { success: true, data: inserted[0], cached: false }
+  // })
   .post(
     '/conversations/:id/rag/build',
-    async ({ params: { id: conversation_id } }) => {
-      const result = await execRagBuild()
+    async ({ params: { id: conversation_id }, body }) => {
+      const result = await execRagBuild(body.dataset_ids)
 
       if (!result?.answer) {
         return { success: false, error: 'RAG build failed' }
@@ -134,6 +151,11 @@ export const messageRoutes = new Elysia()
       const inserted = await db.insert(ragBuilds).values(ragBuildData).returning()
 
       return { success: true, data: inserted[0], cached: false }
+    },
+    {
+      body: t.Object({
+        dataset_ids: t.Array(t.String()),
+      }),
     },
   )
   .get(
@@ -250,6 +272,55 @@ export const messageRoutes = new Elysia()
         tags: ['消息管理'],
         summary: '获取历史消息',
         description: '获取指定会话的历史消息列表，支持分页查询。',
+      },
+    },
+  )
+  /**
+   * 上传文件（支持多文件）
+   */
+  .post(
+    '/upload',
+    async ({ body }) => {
+      await ensureUploadDir()
+
+      const uploadedFiles: string[] = []
+      const files = body.files as File[] | File
+
+      const fileArray = Array.isArray(files) ? files : [files]
+
+      for (const file of fileArray) {
+        // 生成唯一文件名
+        const timestamp = Date.now()
+        const randomStr = Math.random().toString(36).substring(2, 15)
+        const fileExtension = file.name.split('.').pop() || ''
+        const uniqueFileName = `${timestamp}_${randomStr}.${fileExtension}`
+        const filePath = join(UPLOAD_DIR, uniqueFileName)
+
+        // 将文件写入磁盘
+        const buffer = await file.arrayBuffer()
+        await Bun.write(filePath, buffer)
+
+        // 返回相对路径
+        uploadedFiles.push(`/uploads/${uniqueFileName}`)
+      }
+
+      logger.info(`Uploaded ${fileArray.length} file(s)`)
+
+      return {
+        success: true,
+        data: uploadedFiles,
+      }
+    },
+    {
+      body: t.Object({
+        files: t.Files({
+          minItems: 1,
+        }),
+      }),
+      detail: {
+        tags: ['文件管理'],
+        summary: '上传文件',
+        description: '上传一个或多个文件，返回上传后的文件路径数组。',
       },
     },
   )

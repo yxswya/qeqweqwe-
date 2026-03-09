@@ -151,6 +151,13 @@ export interface RagBuildResponse {
   sources: string[]
 }
 
+// /api/exec/rag/submit 返回结果
+export interface RagBuildSyncResponse {
+  data: {
+    job_id: string
+  }
+}
+
 // /api/exec/rag/answer
 export interface RagAnswerResponse {
   answer: {

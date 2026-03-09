@@ -4,21 +4,13 @@ import { logger } from './logger'
 // const apiUrl = 'http://192.168.20.131:8002/api/parse/pipeline'
 const apiUrl = 'http://localhost:8002/api/exec/rag/build'
 
-export async function execRagBuild() {
+export async function execRagBuild(dataset_ids: string[]) {
   const ragParams: RagBuildParams = {
     rag_cfg: {
       backend: 'file',
       embedder: 'sentence-transformers/all-MiniLM-L6-v2',
     },
-    dataset_ids: [
-      'E:\\__Fuck\\YuTong\\datasets\\hhs\\1.txt',
-      'E:\\__Fuck\\YuTong\\datasets\\hhs\\2.txt',
-      'E:\\__Fuck\\YuTong\\datasets\\hhs\\3.txt',
-      'E:\\__Fuck\\YuTong\\datasets\\hhs\\4.txt',
-      'E:\\__Fuck\\YuTong\\datasets\\hhs\\5.txt',
-      'E:\\__Fuck\\YuTong\\datasets\\hhs\\6.txt',
-      'E:\\__Fuck\\YuTong\\datasets\\hhs\\7.txt',
-    ],
+    dataset_ids,
   }
 
   try {
