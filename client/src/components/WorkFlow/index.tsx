@@ -84,16 +84,38 @@ const Questions: React.FC = () => {
 
 const RagBuildList: React.FC = () => {
   const ragBuild = useStore(state => state.ragBuild)
-  return <div>{
-      ragBuild.map(rag => {
-        return <div key={rag.id}>
-          <button
-        className="px-6 py-2.5 bg-linear-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-lg shadow-md hover:shadow-lg hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200"
-      >
-        {rag.indexVersion}</button>
+  const ragBuildProgress = useStore(state => state.ragBuildProgress)
+  const ragBuildLogs = useStore(state => state.ragBuildProgress)
+  return (
+    <div>
+      {
+        ragBuild.map((rag) => {
+          return (
+            <div key={rag.id}>
+              <button
+                className="px-6 py-2.5 bg-linear-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-lg shadow-md hover:shadow-lg hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200"
+              >
+                {rag.indexVersion}
+              </button>
+            </div>
+          )
+        })
+      }
+
+      {JSON.stringify(ragBuildProgress)}
+      {JSON.stringify(ragBuildLogs)}
+      {/* <div className="mt-3">
+        <div className="text-xs font-medium text-gray-600 mb-2">构建日志</div>
+        <div className="bg-gray-900 text-gray-100 rounded p-2 max-h-40 overflow-y-auto">
+          <pre className="text-xs font-mono whitespace-pre-wrap">
+            {logs.map((log, i) => (
+              <div key={`${log}-${i}`} className="py-0.5">{log}</div>
+            ))}
+          </pre>
         </div>
-      })
-    }</div>
+      </div> */}
+    </div>
+  )
 }
 
 const WorkFlow: React.FC = () => {

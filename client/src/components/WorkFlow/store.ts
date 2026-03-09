@@ -15,6 +15,20 @@ export interface Message {
   senderId: string
 }
 
+// RAG 构建进度状态
+export interface RagBuildProgress {
+  job_id: string
+  state: 'pending' | 'running' | 'succeeded' | 'failed'
+  progress: number
+  message: string
+}
+
+// RAG 构建日志状态
+export interface RagBuildLogs {
+  job_id: string
+  logs: string[]
+}
+
 export const useStore = create<{
   sessionId: string | undefined
   status: 'loading' | 'input' | 'none' | 'questions' // 当前操作状态
@@ -22,6 +36,8 @@ export const useStore = create<{
   messages: Message[]
   clarificationQuestions: ClarificationQuestion[]
   ragBuild: any[]
+  ragBuildProgress: RagBuildProgress | null
+  ragBuildLogs: RagBuildLogs | null
   fetchMessage: (text: string) => Promise<void>
   clearStatus: () => void
   initSession: (sessionId: string) => void
@@ -35,6 +51,8 @@ export const useStore = create<{
   messages: [],
   clarificationQuestions: [],
   ragBuild: [],
+  ragBuildProgress: null,
+  ragBuildLogs: null,
 
   clearSession() {
     set({
@@ -66,16 +84,17 @@ export const useStore = create<{
     sse.onmessage = (event) => {
       const { messages } = get()
       const payload = JSON.parse(event.data)
+      console.log('payload', payload)
       if (payload.type === 'NEW_BOT_MESSAGE') {
         console.log('收到 AI 回复:', payload.data.content)
-        // 更新 UI...
 
         const message = payload.data.content as Message
         let content: (ApiResponse | string)
 
         try {
-          content  = JSON.parse(message.content)
-        } catch {
+          content = JSON.parse(message.content)
+        }
+        catch {
           content = message.content
         }
 
@@ -118,6 +137,41 @@ export const useStore = create<{
             messages: newMessages,
           })
         }
+      }
+      else if (payload.type === 'rag_build_progress') {
+        // RAG 构建进度更新
+        console.log('RAG 构建进度:', payload.data)
+        set({ ragBuildProgress: payload.data })
+      }
+      else if (payload.type === 'rag_build_logs') {
+        // RAG 构建日志更新
+        console.log('RAG 构建日志:', payload.data)
+        set({ ragBuildLogs: payload.logs })
+      }
+      else if (payload.type === 'rag_build_complete') {
+        // RAG 构建完成
+        console.log('RAG 构建完成:', payload.data)
+        set({
+          ragBuildProgress: {
+            job_id: payload.data.job_id,
+            state: 'succeeded',
+            progress: 1,
+            message: '构建完成',
+          },
+        })
+        fetchRagBuild()
+      }
+      else if (payload.type === 'rag_build_error') {
+        // RAG 构建失败
+        console.error('RAG 构建失败:', payload.data)
+        set({
+          ragBuildProgress: {
+            job_id: payload.data.job_id,
+            state: 'failed',
+            progress: 0,
+            message: payload.data.message,
+          },
+        })
       }
       else if (payload.type === 'ERROR') {
         console.error('出错了')
