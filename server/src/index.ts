@@ -13,3 +13,5 @@ const app = new Elysia()
 logger.info(
   `🦊 Elysia is running at http://${app.server?.hostname}:${app.server?.port}/openapi`,
 )
+
+export type App = typeof app

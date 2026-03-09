@@ -43,9 +43,54 @@ export const messageRoutes = new Elysia()
 
     return { userId }
   })
+  .post('/conversations/:id/rag/build', async ({ params: { id: conversation_id } }) => {
+    const result = await execRagBuild()
+
+    if (!result?.answer) {
+      return { success: false, error: 'RAG build failed' }
+    }
+
+    const { answer } = result
+    const indexVersion = answer.artifacts.index_version
+
+    // 如果是缓存的结果，检查数据库中是否已存在
+    if (answer.cached) {
+      const existing = await db.query.ragBuilds.findFirst({
+        where: eq(ragBuilds.indexVersion, indexVersion),
+      })
+
+      if (existing) {
+        return { success: true, data: existing, cached: true }
+      }
+    }
+
+    const ragBuildData = {
+      conversationId: conversation_id,
+      runId: indexVersion, // 使用 index_version 作为运行 ID
+      indexVersion,
+      indexUri: answer.artifacts.index_uri,
+      manifestUri: answer.artifacts.manifest_uri,
+      embedder: answer.artifacts.embedder,
+      metric: answer.artifacts.metric,
+      dim: answer.artifacts.dim,
+      elapsedMs: answer.elapsed_ms,
+      cached: answer.cached,
+      stats: {
+        datasetSummary: answer.stats.dataset_summary,
+        chunkDistribution: answer.stats.chunk_distribution,
+        embeddingDim: answer.stats.embedding_dim,
+        embeddingModel: answer.stats.embedding_model,
+      },
+      createdAt: new Date(),
+    }
+
+    const inserted = await db.insert(ragBuilds).values(ragBuildData).returning()
+
+    return { success: true, data: inserted[0], cached: false }
+  })
   .post(
     '/conversations/:id/rag/build',
-    async ({ params: { id: conversation_id }, body, userId }) => {
+    async ({ params: { id: conversation_id } }) => {
       const result = await execRagBuild()
 
       if (!result?.answer) {
