@@ -15,6 +15,7 @@ async function saveBotMessageToDB(
   userMessageId: string,
   botMessageId: string,
   botResult: ApiResponse | string,
+  messageStatus: 'train' | 'normal' | 'rag' = 'normal',
 ) {
   try {
     let result: any
@@ -27,6 +28,7 @@ async function saveBotMessageToDB(
         senderId: 'system-bot-id',
         content: typeof botResult === 'string' ? botResult : JSON.stringify(botResult),
         messageType: 'system',
+        messageStatus,
         createdAt: new Date(),
       }).returning()
 
@@ -50,14 +52,52 @@ async function saveBotMessageToDB(
   }
 }
 
+async function updateBotMessageStatusToDB(
+  conversationId: string,
+  botMessageId: string,
+  messageStatus: 'train' | 'normal' | 'rag' = 'normal',
+  content: string,
+) {
+  try {
+    const result = await db.update(messages).set({
+      messageStatus,
+      content,
+    }).where(eq(messages.id, botMessageId)).returning()
+    return {
+      botMessageId,
+      result: result[0],
+    }
+  }
+  catch (error) {
+    logger.error(`[会话 ${conversationId}] 更新机器人回复信息状态时到数据库时发生错误:`, error)
+
+    return {
+      success: true,
+      message: '您的消息已发送，但机器人当前开小差了，请稍后再试2。',
+    }
+  }
+}
+
 export async function appendBotMessage(
   conversationId: string, // 会话id
   preMessageId: string, // 前一个消息id
   botMessageId: string, // 自身消息id
   content: string, // 消息内容
+  messageStatus?: 'train' | 'normal' | 'rag',
 ) {
   const eventName = `chat:${conversationId}`
-  const { result } = await saveBotMessageToDB(conversationId, preMessageId, botMessageId, content)
+  const { result } = await saveBotMessageToDB(conversationId, preMessageId, botMessageId, content, messageStatus)
+
+  async function toNormal(txt: string) {
+    const res = await updateBotMessageStatusToDB(conversationId, botMessageId, 'normal', txt)
+
+    logger.info(`[会话 ${conversationId}] 机器人更新消息: ${botMessageId}`)
+
+    eventBus.emit(eventName, {
+      type: 'NEW_BOT_MESSAGE_UPDATE',
+      data: { id: botMessageId, content: res },
+    })
+  }
 
   logger.info(`[会话 ${conversationId}] 机器人回复已保存，消息ID: ${botMessageId}`)
 
@@ -65,6 +105,8 @@ export async function appendBotMessage(
     type: 'NEW_BOT_MESSAGE',
     data: { id: botMessageId, content: result },
   })
+
+  return { toNormal }
 }
 
 /**

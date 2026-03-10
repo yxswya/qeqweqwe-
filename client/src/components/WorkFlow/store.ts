@@ -11,6 +11,7 @@ export interface Message {
   createdAt: string
   id: string
   messageType: string
+  messageStatus?: 'rag' | 'train' | 'normal'
   sender: null | string
   senderId: string
 }
@@ -135,6 +136,13 @@ export const useStore = create<{
             messages: newMessages,
           })
         }
+      }
+      else if (payload.type === 'NEW_BOT_MESSAGE_UPDATE') {
+        const id = payload.data.id
+
+        const messageIndex = messages.findIndex(msg => msg.id === id)
+        messages[messageIndex] = payload.data.content.result
+        set({ messages: [...messages] })
       }
       else if (payload.type === 'rag_build_progress') {
         // RAG 构建进度更新

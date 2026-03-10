@@ -25,6 +25,10 @@ export function getComponent(message: Message) {
     return <RagSimple message={message} />
   }
 
+  if (message.messageStatus === 'rag') {
+    return <Text content="知识库构建中" />
+  }
+
   if (message.content[0] === '{') {
     try {
       const content = JSON.parse(message.content) as ApiResponse

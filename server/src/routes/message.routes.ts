@@ -142,11 +142,21 @@ export const messageRoutes = new Elysia()
       }
       else {
         const botPreBuildMessageId = crypto.randomUUID()
-        appendBotMessage(
+        await appendBotMessage(
           conversation_id,
           body.message_id,
           botPreBuildMessageId,
           `文件尺寸约为: ${(totalSize / 1024 / 1024).toFixed(2)} MB,已采用 同步构建的方式进行处理`,
+          'normal',
+        )
+        const botNextBuildMessageId = crypto.randomUUID()
+
+        const { toNormal } = await appendBotMessage(
+          conversation_id,
+          botPreBuildMessageId,
+          botNextBuildMessageId,
+          ``,
+          'rag',
         )
         // 小文件：使用同步处理
         const result = await execRagBuild(filePaths)
@@ -164,13 +174,7 @@ export const messageRoutes = new Elysia()
           })
 
           if (existing) {
-            const botNextBuildMessageId = crypto.randomUUID()
-            appendBotMessage(
-              conversation_id,
-              botPreBuildMessageId,
-              botNextBuildMessageId,
-              `知识库重复构建`,
-            )
+            toNormal(`知识库重复构建`)
 
             return { success: true, data: existing, cached: true }
           }
@@ -198,13 +202,7 @@ export const messageRoutes = new Elysia()
 
         const inserted = await db.insert(ragBuilds).values(ragBuildData).returning()
 
-        const botNextBuildMessageId = crypto.randomUUID()
-        appendBotMessage(
-          conversation_id,
-          botPreBuildMessageId,
-          botNextBuildMessageId,
-          `知识库构建成功${JSON.stringify(ragBuildData)}`,
-        )
+        toNormal(`知识库构建成功${JSON.stringify(ragBuildData)}`)
         return { success: true, data: inserted[0], cached: false, async: false }
       }
     },

@@ -56,6 +56,7 @@ export const messages = sqliteTable('messages', {
   messageType: text('message_type', { enum: ['text', 'image', 'system'] })
     .notNull()
     .default('text'), // 消息类型：文本、图片、系统提示等
+  messageStatus: text('message_status', { enum: ['train', 'normal', 'rag'] }).$defaultFn(() => 'normal'),
   createdAt: integer('created_at', { mode: 'timestamp_ms' })
     .notNull(),
 })
