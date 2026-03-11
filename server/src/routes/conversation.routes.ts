@@ -1,15 +1,45 @@
+import { jwt } from '@elysiajs/jwt'
 import { Elysia, t } from 'elysia'
 import { db } from '../db'
 import { logger } from '../logger'
-import { execRagBuild } from '../rag-build'
 import { conversations, participants } from '../schema'
 import { eventBus } from '../utils/event-bus'
+
+const JWT_SECRET = 'Fischl von Luftschloss Narfidort'
 
 /**
  * 会话相关路由
  * 依赖父路由提供 JWT 认证上下文
  */
 export const conversationRoutes = new Elysia()
+// JWT 配置
+  .use(
+    jwt({
+      name: 'jwt',
+      secret: JWT_SECRET,
+    }),
+  )
+  // 签名路由（无需认证）
+  .get('/sign/:name', async ({ jwt, params: { name }, cookie: { auth } }) => {
+    const value = await jwt.sign({ name })
+    auth.set({
+      value,
+      httpOnly: true,
+      maxAge: 7 * 86400,
+      path: '/api',
+    })
+    return `Sign in as ${value}`
+  })
+  // JWT 认证中间件（应用于后续所有路由）
+  .derive(async ({ jwt, cookie: { auth }, status }) => {
+    const profile = await jwt.verify(auth.value as string)
+    const userId = profile?.name as string
+
+    if (!profile)
+      return status(401, 'Unauthorized')
+
+    return { userId }
+  })
   /**
    * 创建会话 (发起单聊或群聊)
    */
@@ -112,15 +142,33 @@ export const conversationRoutes = new Elysia()
   .get('/conversations/:id/sse', ({ params: { id }, request }) => {
     const stream = new ReadableStream({
       start(controller) {
+        // 1. 发送初始连接成功消息（可选）
+        controller.enqueue(`event: connected\ndata: ${JSON.stringify({ id, message: 'SSE connected' })}\n\n`)
+
+        // 2. 模拟定时推送数据（例如每秒发送一次时间戳）
+        // const interval = setInterval(() => {
+        //   const data = {
+        //     id,
+        //     timestamp: Date.now(),
+        //     message: `Update for user ${id}`,
+        //   }
+        //   // SSE 格式：以 "data: " 开头，两个换行结尾
+        //   controller.enqueue(`data: ${JSON.stringify(data)}\n\n`)
+        // }, 1000)
+
         const listener = (message: any) => {
+          // console.log('message', message)
           controller.enqueue(`data: ${JSON.stringify(message)}\n\n`)
         }
 
         const eventName = `chat:${id}`
         eventBus.on(eventName, listener)
 
+        // 3. 监听客户端断开连接，清理资源
         request.signal.addEventListener('abort', () => {
-          eventBus.off(eventName, listener)
+          console.log(`Client ${id} disconnected`)
+          // clearInterval(interval)
+          eventBus.off(eventName, listener) // 移除事件监听器，防止内存泄漏和错误
           controller.close()
         })
       },

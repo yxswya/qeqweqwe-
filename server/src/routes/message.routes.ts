@@ -6,11 +6,15 @@ import { desc, eq } from 'drizzle-orm'
 import { Elysia, t } from 'elysia'
 import { db } from '../db'
 import { logger } from '../logger'
+import { parsePipeLine } from '../parse-pipeline'
 import { execRagBuild } from '../rag-build'
 import { execRagBuildSync } from '../rag-build-sync'
-import { conversations, messages, ragBuilds } from '../schema'
-import { appendBotMessage, processBotReplyInBackground } from '../services/bot.service'
+import { conversations, ragBuilds } from '../schema'
+import { BotReply } from '../services/bot.service'
+import { Message } from '../services/message.service'
 import { startRagBuildPolling } from '../services/rag-build-poll.service'
+import { hasAnswer } from '../types'
+import { eventBus } from '../utils/event-bus'
 
 // 上传目录配置
 const UPLOAD_DIR = join(cwd(), 'uploads')
@@ -141,23 +145,18 @@ export const messageRoutes = new Elysia()
         }
       }
       else {
-        const botPreBuildMessageId = crypto.randomUUID()
-        await appendBotMessage(
-          conversation_id,
-          body.message_id,
-          botPreBuildMessageId,
-          `文件尺寸约为: ${(totalSize / 1024 / 1024).toFixed(2)} MB,已采用 同步构建的方式进行处理`,
-          'normal',
-        )
-        const botNextBuildMessageId = crypto.randomUUID()
+        const { id: replyToId } = await BotReply.send({
+          conversationId: conversation_id,
+          replyToId: body.message_id,
+        }, `文件尺寸约为: ${(totalSize / 1024 / 1024).toFixed(2)} MB,已采用 同步构建的方式进行处理`)
 
-        const { toNormal } = await appendBotMessage(
-          conversation_id,
-          botPreBuildMessageId,
-          botNextBuildMessageId,
-          ``,
-          'rag',
-        )
+        const reply = new BotReply({
+          conversationId: conversation_id,
+          replyToId,
+        })
+
+        await reply.send('loading', 'sending')
+
         // 小文件：使用同步处理
         const result = await execRagBuild(filePaths)
         if (!result?.answer) {
@@ -174,7 +173,7 @@ export const messageRoutes = new Elysia()
           })
 
           if (existing) {
-            toNormal(`知识库重复构建`)
+            await reply.edit('知识库重复构建', 'success')
 
             return { success: true, data: existing, cached: true }
           }
@@ -202,7 +201,7 @@ export const messageRoutes = new Elysia()
 
         const inserted = await db.insert(ragBuilds).values(ragBuildData).returning()
 
-        toNormal(`知识库构建成功${JSON.stringify(ragBuildData)}`)
+        await reply.edit(`知识库构建成功${JSON.stringify(ragBuildData)}`, 'success')
         return { success: true, data: inserted[0], cached: false, async: false }
       }
     },
@@ -240,31 +239,58 @@ export const messageRoutes = new Elysia()
   .post(
     '/conversations/:id/messages',
     async ({ params: { id }, body, userId }) => {
-      const botMessageId = crypto.randomUUID()
-      const userMessageId = crypto.randomUUID()
-
-      let result: any
-
-      logger.info(`[会话 ${id}] 用户 ${userId} 发送消息: "${body.content.substring(0, 50)}${body.content.length > 50 ? '...' : ''}"`)
-
-      await db.transaction(async (tx) => {
-        result = await tx.insert(messages).values({
-          id: userMessageId,
-          conversationId: id,
-          senderId: userId,
-          content: body.content,
-          messageType: body.messageType,
-          createdAt: new Date(),
-        }).returning()
-
-        await tx.update(conversations)
-          .set({ lastMessageAt: new Date() })
-          .where(eq(conversations.id, id))
+      const conversationId = id
+      const [userMessage, botMessage] = await Message.appendWithBot({
+        conversationId,
+        senderId: userId,
+        content: body.content,
+        messageType: 'TEXT',
       })
 
-      processBotReplyInBackground(id, userMessageId, botMessageId, body.content)
+      async function processBotReplyInBackground() {
+        const conversation = await db.select().from(conversations).where(eq(conversations.id, conversationId))
+        if (!conversation || conversation.length === 0) {
+          logger.error(`[会话 ${conversationId}] 会话不存在，无法处理机器人回复`)
+          return
+        }
 
-      return { success: true, data: result[0], botMessageId }
+        const botResult = await parsePipeLine(userMessage.content, conversation[0]?.thirdSessionId || '')
+        if (!botResult) {
+          logger.error(`[会话 ${conversationId}] AI 服务返回空结果`)
+          return
+        }
+
+        await db.update(conversations).set({
+          thirdSessionId: hasAnswer(botResult) ? botResult.answer.session_id : botResult.completeness.session_id,
+        })
+
+        await Message.updateBotMessage(
+          botMessage,
+          {
+            content: JSON.stringify(botResult),
+            messageType: hasAnswer(botResult) ? 'ASK_MORE_INFO_COMPLETENESS' : 'ASK_MORE_INFO_INTENT',
+            status: 'success',
+          },
+        )
+
+        if (!hasAnswer(botResult) && botResult.intent.actions.includes('RAG_BUILD_INDEX')) {
+          await Message.appendWithBot({
+            conversationId,
+            senderId: 'system-bot-id',
+            content: JSON.stringify({
+              content: '构建RAG',
+            }),
+            messageType: 'RAG_BUILD_INDEX',
+          })
+        }
+      }
+
+      processBotReplyInBackground().catch(console.error)
+
+      return {
+        userMessage,
+        botMessage,
+      }
     },
     {
       params: t.Object({
@@ -310,10 +336,7 @@ export const messageRoutes = new Elysia()
         offset,
       })
 
-      return {
-        success: true,
-        data: historyMessages.reverse(),
-      }
+      return historyMessages.reverse()
     },
     {
       params: t.Object({

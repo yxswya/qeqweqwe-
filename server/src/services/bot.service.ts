@@ -1,178 +1,106 @@
-import type { ApiResponse } from '../types'
+import type { SelectMessage } from '../schema'
 import { eq } from 'drizzle-orm'
 import { db } from '../db'
-import { logger } from '../logger'
-import { parsePipeLine } from '../parse-pipeline'
 import { conversations, messages } from '../schema'
-import { hasAnswer } from '../types'
-import { eventBus } from '../utils/event-bus'
 
-/**
- * 保存机器人回复到数据库
- */
-async function saveBotMessageToDB(
-  conversationId: string,
-  userMessageId: string,
-  botMessageId: string,
-  botResult: ApiResponse | string,
-  messageStatus: 'train' | 'normal' | 'rag' = 'normal',
-) {
-  try {
-    let result: any
+// --- 类型定义区 ---
+// 提取 Status 类型，方便统一管理和后续扩展
+export type BotMessageStatus = SelectMessage['status']
 
-    await db.transaction(async (tx) => {
-      result = await tx.insert(messages).values({
-        id: botMessageId,
-        conversationId,
-        userMessageId,
-        senderId: 'system-bot-id',
-        content: typeof botResult === 'string' ? botResult : JSON.stringify(botResult),
-        messageType: 'system',
-        messageStatus,
-        createdAt: new Date(),
+// 使用接口定义上下文参数，避免参数顺序记错，且方便扩展
+export interface BotReplyContext {
+  conversationId: string
+  replyToId?: string // 可选：并非所有消息都一定是回复某条具体消息
+}
+
+export class BotReply {
+  public readonly id: string
+  public readonly conversationId: string
+  public readonly replyToId: string | null
+
+  // 常量：抽离系统机器人的默认 ID
+  private static readonly SYSTEM_BOT_ID = 'system-bot-id'
+
+  constructor(context: BotReplyContext) {
+    this.id = crypto.randomUUID()
+    this.conversationId = context.conversationId
+    this.replyToId = context.replyToId ?? null
+  }
+
+  // ==========================================
+  // 静态方法：快捷一次性发送 (无状态)
+  // ==========================================
+
+  /**
+   * 快捷发送一条不需要后续状态更新的消息
+   * @example
+   * await BotReply.send({ conversationId: '123' }, '欢迎使用！');
+   */
+  public static async send(
+    context: BotReplyContext,
+    content: string,
+    status: BotMessageStatus = 'success',
+  ) {
+    const reply = new BotReply(context)
+    return await reply.send(content, status)
+  }
+
+  // ==========================================
+  // 实例方法：生命周期管理 (有状态)
+  // ==========================================
+
+  /**
+   * 1. 发送初始消息 (适用于长耗时任务，先发送 loading 占位)
+   */
+  public async send(content: string, status: BotMessageStatus = 'success') {
+    return await db.transaction(async (tx) => {
+      const [newMessage] = await tx.insert(messages).values({
+        id: this.id,
+        conversationId: this.conversationId,
+        replyToId: this.replyToId,
+        content,
+        status,
+        senderId: BotReply.SYSTEM_BOT_ID,
       }).returning()
 
-      await tx.update(conversations)
-        .set({ lastMessageAt: new Date() })
-        .where(eq(conversations.id, conversationId))
-    })
-
-    return {
-      botMessageId,
-      result: result[0],
-    }
-  }
-  catch (error) {
-    logger.error(`[会话 ${conversationId}] 保存机器人回复到数据库时发生错误:`, error)
-
-    return {
-      success: true,
-      message: '您的消息已发送，但机器人当前开小差了，请稍后再试。',
-    }
-  }
-}
-
-async function updateBotMessageStatusToDB(
-  conversationId: string,
-  botMessageId: string,
-  messageStatus: 'train' | 'normal' | 'rag' = 'normal',
-  content: string,
-) {
-  try {
-    const result = await db.update(messages).set({
-      messageStatus,
-      content,
-    }).where(eq(messages.id, botMessageId)).returning()
-    return {
-      botMessageId,
-      result: result[0],
-    }
-  }
-  catch (error) {
-    logger.error(`[会话 ${conversationId}] 更新机器人回复信息状态时到数据库时发生错误:`, error)
-
-    return {
-      success: true,
-      message: '您的消息已发送，但机器人当前开小差了，请稍后再试2。',
-    }
-  }
-}
-
-export async function appendBotMessage(
-  conversationId: string, // 会话id
-  preMessageId: string, // 前一个消息id
-  botMessageId: string, // 自身消息id
-  content: string, // 消息内容
-  messageStatus?: 'train' | 'normal' | 'rag',
-) {
-  const eventName = `chat:${conversationId}`
-  const { result } = await saveBotMessageToDB(conversationId, preMessageId, botMessageId, content, messageStatus)
-
-  async function toNormal(txt: string) {
-    const res = await updateBotMessageStatusToDB(conversationId, botMessageId, 'normal', txt)
-
-    logger.info(`[会话 ${conversationId}] 机器人更新消息: ${botMessageId}`)
-
-    eventBus.emit(eventName, {
-      type: 'NEW_BOT_MESSAGE_UPDATE',
-      data: { id: botMessageId, content: res },
+      await this._touchConversation(tx)
+      return newMessage
     })
   }
 
-  logger.info(`[会话 ${conversationId}] 机器人回复已保存，消息ID: ${botMessageId}`)
+  /**
+   * 2. 编辑/更新当前消息 (例如：大模型流式输出完毕，更新为 success)
+   */
+  public async edit(content: string, status: BotMessageStatus = 'success') {
+    return await db.transaction(async (tx) => {
+      const [updatedMessage] = await tx.update(messages)
+        .set({ content, status })
+        .where(eq(messages.id, this.id))
+        .returning()
 
-  eventBus.emit(eventName, {
-    type: 'NEW_BOT_MESSAGE',
-    data: { id: botMessageId, content: result },
-  })
-
-  return { toNormal }
-}
-
-/**
- * 后台处理机器人回复
- * 不阻塞主线程，异步处理 AI 服务调用
- */
-export async function processBotReplyInBackground(
-  conversationId: string,
-  userMessageId: string,
-  botMessageId: string,
-  content: string,
-) {
-  const eventName = `chat:${conversationId}`
-  logger.info(`[会话 ${conversationId}] 开始处理机器人回复，用户消息内容: "${content.substring(0, 50)}${content.length > 50 ? '...' : ''}"`)
-
-  const conversation = await db.select().from(conversations).where(eq(conversations.id, conversationId))
-  if (!conversation || conversation.length === 0) {
-    logger.error(`[会话 ${conversationId}] 会话不存在，无法处理机器人回复`)
-    return
+      await this._touchConversation(tx)
+      return updatedMessage
+    })
   }
 
-  try {
-    const botResult = await parsePipeLine(content, conversation[0]?.thirdSessionId || '')
-
-    if (!botResult) {
-      logger.error(`[会话 ${conversationId}] AI 服务返回空结果`)
-      return
-    }
-
-    // 更新 session_id
-    if (hasAnswer(botResult)) {
-      await db.update(conversations).set({
-        thirdSessionId: botResult.answer.session_id,
-      })
-    }
-    else {
-      await db.update(conversations).set({
-        thirdSessionId: botResult.completeness.session_id,
-      })
-    }
-
-    const { result } = await saveBotMessageToDB(conversationId, userMessageId, botMessageId, botResult)
-
-    logger.info(`[会话 ${conversationId}] 机器人回复已保存，消息ID: ${botMessageId}`)
-
-    eventBus.emit(eventName, {
-      type: 'NEW_BOT_MESSAGE',
-      data: { id: botMessageId, content: result },
-    })
-
-    if (!hasAnswer(botResult)) {
-      if (botResult.intent.actions.includes('RAG_BUILD_INDEX')) {
-        const ragBuildIndexId = crypto.randomUUID()
-        const { result } = await saveBotMessageToDB(conversationId, botMessageId, ragBuildIndexId, 'RAG_BUILD_INDEX')
-        eventBus.emit(eventName, {
-          type: 'NEW_BOT_MESSAGE',
-          data: { id: ragBuildIndexId, content: result },
-        })
-      }
-    }
+  /**
+   * 3. 快捷失败方法 (语法糖)：大模型请求失败时直接调用
+   */
+  public async fail(errorMessage: string = '抱歉，系统处理失败，请稍后再试。') {
+    return await this.edit(errorMessage, 'error')
   }
-  catch (e) {
-    logger.error(`[会话 ${conversationId}] 处理机器人回复时发生错误:`, e)
-    eventBus.emit(eventName, {
-      type: 'ERROR',
-      message: 'Failed to process message',
-    })
+
+  // ==========================================
+  // 私有辅助方法
+  // ==========================================
+
+  /**
+   * 刷新会话的最后活跃时间 (提取公共逻辑)
+   * 注：any 可以替换为你的 Drizzle 事务类型，例如 `PgTransaction<...>` 或 `ExtractTablesWithRelations<...>`
+   */
+  private async _touchConversation(tx: any) {
+    await tx.update(conversations)
+      .set({ lastMessageAt: new Date() })
+      .where(eq(conversations.id, this.conversationId))
   }
 }

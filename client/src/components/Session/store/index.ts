@@ -1,20 +1,7 @@
-import type { ClarificationQuestion } from './types'
 import type { Message } from '@/components/Session/types.ts'
+import type { ClarificationQuestion } from '@/components/WorkFlow/types'
 import { create } from 'zustand'
-
-// let sse: EventSource
-
-// export interface Message {
-//   content: string
-//   conversationId: string
-//   userMessageId: string | undefined
-//   createdAt: string
-//   id: string
-//   messageType: string
-//   messageStatus?: 'rag' | 'train' | 'normal'
-//   sender: null | string
-//   senderId: string | null
-// }
+import { app } from '@/components/Session/common.ts'
 
 // RAG 构建进度状态
 export interface RagBuildProgress {
@@ -30,8 +17,16 @@ export interface RagBuildLogs {
   logs: string[]
 }
 
+export interface SSENormalMessage {
+  type: 'NEW_BOT_MESSAGE' | 'UPDATE_BOT_MESSAGE'
+  data: {
+    id: string
+    content: Message
+  }
+}
+
 export const useStore = create<{
-  sessionId: string | undefined
+  sessionId: string
   status: 'loading' | 'input' | 'none' | 'questions' // 当前操作状态
   // messages: Array<ApiResponse & { id: string }> // 消息列表
   messages: Message[]
@@ -40,14 +35,18 @@ export const useStore = create<{
   ragBuildProgress: RagBuildProgress | null
   ragBuildLogs: RagBuildLogs | null
   fetchMessage: (text: string) => Promise<void>
-  clearStatus: () => void
-  initSession: (sessionId: string) => void
+  initConversation: (sessionId: string | undefined) => void
   getMessages: () => Promise<void>
   createSession: () => Promise<string>
   clearSession: () => void
-  fetchRagBuild: () => void
+  fetchRagBuild: () => Promise<void>
+  setStatus: (obj: Partial<{
+    messages: Message[]
+    status: 'loading' | 'input' | 'none' | 'questions' // 当前操作状态
+    clarificationQuestions: ClarificationQuestion[]
+  }>) => void
 }>((set, get) => ({
-  sessionId: undefined,
+  sessionId: '',
   status: 'input',
   messages: [],
   clarificationQuestions: [],
@@ -63,18 +62,75 @@ export const useStore = create<{
       clarificationQuestions: [],
     })
   },
-  initSession(sessionId) {
-    const { fetchRagBuild } = get()
-    if (!sessionId)
+
+  setStatus(obj) {
+    set(obj)
+  },
+  initConversation(sessionId) {
+    const { fetchRagBuild, getMessages, clearSession } = get()
+    if (!sessionId) {
+      clearSession()
       return
+    }
 
     set({
       sessionId,
     })
 
-    fetchRagBuild()
+    fetchRagBuild().catch(console.error)
+    getMessages().catch(console.error)
 
     // const sse = SessionSSE.getInstance(sessionId)
+
+    // const sse = SSEManager.getInstance()
+    //
+    // // 1. 建立连接
+    // sse.connect(`http://localhost:3000/api/conversations/${sessionId}/sse`, {
+    //   withCredentials: true, // 允许携带 Cookie
+    // })
+    //
+    // // 2. 监听默认的 message 消息
+    // const handleNormalMessage = (data: SSENormalMessage) => {
+    //   const { messages } = get()
+    //   console.log('Received message:', data) // 已经自动解析过 JSON
+    //   if (data.type === 'UPDATE_BOT_MESSAGE') {
+    //     const findIndex = messages.findIndex(el => el.id === data.data.content.id)
+    //     messages.splice(findIndex, 1, data.data.content)
+    //
+    //     if (data.data.content.messageType === 'ASK_MORE_INFO_COMPLETENESS') {
+    //       const content = JSON.parse(data.data.content.content)
+    //       set({
+    //         status: 'questions',
+    //         clarificationQuestions: content.answer.clarification_questions,
+    //         messages: [...messages],
+    //       })
+    //     }
+    //     else if (data.data.content.messageType === 'ASK_MORE_INFO_INTENT') {
+    //       // const content = JSON.parse(data.data.content.content)
+    //       set({
+    //         status: 'input',
+    //         clarificationQuestions: [],
+    //         messages: [...messages],
+    //       })
+    //     }
+    //     else {
+    //       set({
+    //         status: 'none',
+    //         messages: [...messages],
+    //       })
+    //     }
+    //   }
+    //   else {
+    //
+    //   }
+    // }
+    // sse.on('message', handleNormalMessage)
+    //
+    // // 3. 监听后端的自定义事件 (例如后端发送的 event: 'update')
+    // const handleUpdateEvent = (data: any) => {
+    //   console.log('Received update event:', data)
+    // }
+    // sse.on('update', handleUpdateEvent)
 
     // if (!sse) {
     //   // 1. 前端进入页面时，先建立 SSE 长连接
@@ -208,21 +264,19 @@ export const useStore = create<{
 
   async getMessages() {
     const { sessionId } = get()
-    if (!sessionId)
-      return
+    const messages = await app.api.conversations({ conversationId: sessionId }).messages.get()
 
-    const { data } = await fetch(`http://localhost:3000/api/conversations/${sessionId}/messages`, {
-      method: 'GET',
-      credentials: 'include', // 关键设置
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    })
-      .then(res => res.json())
+    // const { data } = await fetch(`http://localhost:3000/api/conversations/${sessionId}/messages`, {
+    //   method: 'GET',
+    //   credentials: 'include', // 关键设置
+    //   headers: {
+    //     'Content-Type': 'application/json',
+    //   },
+    // })
+    //   .then(res => res.json())
 
-    set({
-      messages: data,
-    })
+    console.log(messages.data)
+    set({ messages: [...messages.data || []] })
   },
 
   async fetchRagBuild() {
@@ -250,31 +304,20 @@ export const useStore = create<{
       return
 
     set({ status: 'loading' })
-    const response: { data: Message, botMessageId: string } = await fetch(`http://localhost:3000/api/conversations/${sessionId}/messages`, {
-      method: 'POST',
-      credentials: 'include', // 关键设置
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ content, messageType: 'text' }),
+    const result = await app.api.conversations({
+      id: sessionId,
+    }).messages.post({
+      content,
+      messageType: 'text',
     })
-      .then(res => res.json())
 
-    set({
-      messages: [...messages, response.data, {
-        content: 'loading',
-        conversationId: sessionId,
-        userMessageId: '',
-        createdAt: '',
-        id: response.botMessageId,
-        messageType: 'system',
-        sender: '',
-        senderId: 'system-bot-id',
-      }],
-    })
-  },
-
-  clearStatus() {
+    if (result.data) {
+      const { userMessage, botMessage } = result.data
+      console.log('Received message:', userMessage, botMessage)
+      set({
+        messages: [...messages, userMessage, botMessage],
+      })
+    }
   },
 }))
 

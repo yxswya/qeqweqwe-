@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { useEffect, useRef } from 'react'
-import { List } from '@/components/WorkFlow/index'
+import { List } from '@/components/WorkFlow'
 import { useStore } from '@/components/WorkFlow/store'
 import WorkFlow from '../WorkFlow'
 
@@ -9,15 +9,18 @@ const ChatComponent: React.FC = () => {
   const { messages } = useStore()
 
   useEffect(() => {
-    setTimeout(() => {
+    const time = setTimeout(() => {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
     }, 100)
+
+    return () => {
+      clearTimeout(time)
+    }
   }, [messages])
 
   return (
     <div className="flex h-full">
       <div className="w-0 flex-1">
-
         <div className="h-full flex-1 flex flex-col gap-5 overflow-auto py-6">
           <List />
           <div ref={messagesEndRef} className="h-4 w-full shrink-0"></div>

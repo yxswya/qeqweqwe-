@@ -1,7 +1,6 @@
 import type { RagBuildParams, RagBuildResponse, Success } from './types'
 import { logger } from './logger'
 
-// const apiUrl = 'http://192.168.20.131:8002/api/parse/pipeline'
 const apiUrl = 'http://localhost:8002/api/exec/rag/build'
 
 export async function execRagBuild(dataset_ids: string[]) {

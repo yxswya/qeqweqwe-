@@ -1,23 +1,14 @@
 import type * as React from 'react'
-import type { App } from '../../../../server/src/index'
-import type { Message } from '@/components/WorkFlow/store'
-import { treaty } from '@elysiajs/eden'
+import type { Message } from '@/components/Session/types.ts'
 import { useEffect, useRef, useState } from 'react'
+import { app } from '@/components/Session/common.ts'
 import { useStore } from '@/components/WorkFlow/store'
-
-const app = treaty<App>('localhost:3000', {
-  fetch: {
-    credentials: 'include',
-  },
-})
 
 interface UploadedFile {
   name: string
   path: string
   status: 'uploading' | 'success' | 'error' | 'building'
 }
-
-const STORAGE_KEY = 'rag_build_files'
 
 const RagSimple: React.FC<{ message: Message }> = ({ message }) => {
   const { sessionId, ragBuildProgress, ragBuildLogs } = useStore()
@@ -59,7 +50,7 @@ const RagSimple: React.FC<{ message: Message }> = ({ message }) => {
       isInitializedRef.current = true
     }
 
-    initializeFiles()
+    initializeFiles().catch(console.error)
   }, [sessionId])
 
   // 监听 ragBuildProgress 变化，更新文件状态
@@ -188,7 +179,7 @@ const RagSimple: React.FC<{ message: Message }> = ({ message }) => {
     if (!files || files.length === 0)
       return
 
-    uploadFiles(files)
+    uploadFiles(files).catch(console.error)
   }
 
   // 根据 ragBuildProgress 更新文件状态

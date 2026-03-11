@@ -2,7 +2,7 @@ import * as React from 'react'
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import MessageComponent from '@/components/Chat/Message'
-import { useStore } from './store'
+import { useStore } from '@/components/Session/store/index.ts'
 
 export const List: React.FC = () => {
   const { messages } = useStore()
@@ -16,7 +16,7 @@ export const List: React.FC = () => {
   )
 }
 
-const Input: React.FC = () => {
+export const Input: React.FC = () => {
   const [value, setValue] = useState('')
   const { fetchMessage, createSession } = useStore()
   const params = useParams()
@@ -50,7 +50,7 @@ const Input: React.FC = () => {
   )
 }
 
-const Questions: React.FC = () => {
+export const Questions: React.FC = () => {
   const { clarificationQuestions, fetchMessage } = useStore()
   return (
     <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 space-y-4 shrink-0">
@@ -82,7 +82,7 @@ const Questions: React.FC = () => {
   )
 }
 
-const RagBuildList: React.FC = () => {
+export const RagBuildList: React.FC = () => {
   const ragBuild = useStore(state => state.ragBuild)
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleString('zh-CN', {
@@ -155,18 +155,18 @@ const RagBuildList: React.FC = () => {
 }
 
 const WorkFlow: React.FC = () => {
-  const { status, initSession, getMessages, clearSession } = useStore()
+  const { status, initConversation, getMessages, clearSession } = useStore()
   const params = useParams()
 
   React.useEffect(() => {
     if (params.id) {
-      initSession(params.id)
+      initConversation(params.id)
       getMessages()
     }
     else {
       clearSession()
     }
-  }, [getMessages, initSession, params.id])
+  }, [getMessages, initConversation, params.id])
   return (
     <div className="h-full flex flex-col">
       {/* <List /> */}
