@@ -54,6 +54,7 @@ export type StageType
 export interface ApiResponseAnswer {
   stage: 'completeness'
   answer: {
+    session_id: string
     next_action: string
     clarification_questions: ClarificationQuestion[]
     normalized_request: {

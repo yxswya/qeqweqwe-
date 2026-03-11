@@ -14,7 +14,7 @@
     "@elysiajs/openapi": "^1.4.14",
     "@elysiajs/static": "^1.4.7",
     "drizzle-orm": "^0.45.1",
-    "elysia": "latest",
+    "elysia": "^1.4.27",
     "uuid": "^13.0.0",
     "winston": "^3.19.0"
   },

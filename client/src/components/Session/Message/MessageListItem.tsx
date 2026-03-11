@@ -1,11 +1,12 @@
 import type { Message } from '@/components/Session/types.ts'
-// import type { Message } from '@/components/WorkFlow/store'
-import type { ApiResponseAnswer, ApiResponseIntent } from '@/components/WorkFlow/types.ts'
+import type { ApiResponse } from '@/components/WorkFlow/types.ts'
 import * as React from 'react'
 import Loading from '@/components/Card/Loading.tsx'
-import RagSimple from '@/components/Card/RagSimple.tsx'
+// import RagSimple from '@/components/Card/RagSimple.tsx'
 import Text from '@/components/Card/Text.tsx'
 import { isBot } from '@/components/Session/common.ts'
+// import type { Message } from '@/components/WorkFlow/store'
+import { hasAnswer } from '@/components/WorkFlow/types.ts'
 
 const MessageListItem: React.FC<{ message: Message }> = ({ message }) => {
   const isUser = message.senderId !== 'system-bot-id'
@@ -90,27 +91,36 @@ export function renderMessageListItem(message: Message) {
 
   // =========== 消息类型进行处理 ==================
 
-  if (message.messageType === 'TEXT') {
+  if (message.type === 'text') {
     return <Text content={message.content} />
   }
 
-  const content = parseContent(message.content)
+  if (message.type === 'json') {
+    const content = parseContent(message.content) as ApiResponse
 
-  if (message.messageType === 'LOADING') {
-    return <Loading />
+    if (hasAnswer(content)) {
+      return <Text content={content.answer.normalized_request.ai_summary} />
+    }
+    else {
+      return <Text content={content.workflow_hint.reason} />
+    }
   }
 
-  if (message.messageType === 'RAG_BUILD_INDEX') {
-    return <RagSimple message={message} />
-  }
+  // if (message.messageType === 'LOADING') {
+  //   return <Loading />
+  // }
 
-  if (message.messageType === 'ASK_MORE_INFO_COMPLETENESS') {
-    return <Text content={(content as ApiResponseAnswer).answer.normalized_request.ai_summary} />
-  }
+  // if (message.messageType === 'RAG_BUILD_INDEX') {
+  //   return <RagSimple message={message} />
+  // }
 
-  if (message.messageType === 'ASK_MORE_INFO_INTENT') {
-    return <Text content={(content as ApiResponseIntent).workflow_hint.reason} />
-  }
+  // if (message.messageType === 'ASK_MORE_INFO_COMPLETENESS') {
+  //   return <Text content={(content as ApiResponseAnswer).answer.normalized_request.ai_summary} />
+  // }
+
+  // if (message.messageType === 'ASK_MORE_INFO_INTENT') {
+  //   return <Text content={(content as ApiResponseIntent).workflow_hint.reason} />
+  // }
 
   return <Text content={message.content} />
 }

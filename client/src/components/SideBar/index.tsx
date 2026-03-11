@@ -8,7 +8,7 @@ const SideBar: React.FC = () => {
     <div className="w-68 bg-white flex flex-col shrink-0 p-4">
       <ul>
         <li>
-          <NavLink to="/app/dashboard" className={linkClass}>
+          <NavLink to="/app/dashboard/new" className={linkClass}>
             Dashboard
           </NavLink>
         </li>

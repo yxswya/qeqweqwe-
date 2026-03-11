@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router'
+
 import MessageComponent from '@/components/Chat/Message'
 import { useStore } from '@/components/Session/store/index.ts'
 
@@ -174,6 +175,18 @@ const WorkFlow: React.FC = () => {
       {status === 'loading' && <span>思考中...</span>}
       {status === 'input' && <Input />}
       {status === 'questions' && <Questions /> }
+      <NewInput />
+    </div>
+  )
+}
+
+function NewInput() {
+  const submit = () => {
+
+  }
+  return (
+    <div>
+      <button onClick={() => submit()}>start</button>
     </div>
   )
 }

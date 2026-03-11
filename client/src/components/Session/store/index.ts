@@ -2,6 +2,7 @@ import type { Message } from '@/components/Session/types.ts'
 import type { ClarificationQuestion } from '@/components/WorkFlow/types'
 import { create } from 'zustand'
 import { app } from '@/components/Session/common.ts'
+import { getSessionMessages } from '../utils/elysia'
 
 // RAG 构建进度状态
 export interface RagBuildProgress {
@@ -45,6 +46,8 @@ export const useStore = create<{
     status: 'loading' | 'input' | 'none' | 'questions' // 当前操作状态
     clarificationQuestions: ClarificationQuestion[]
   }>) => void
+
+  addMessage: (message: Message) => void
 }>((set, get) => ({
   sessionId: '',
   status: 'input',
@@ -54,6 +57,22 @@ export const useStore = create<{
   ragBuildProgress: null,
   ragBuildLogs: null,
 
+  addMessage(message) {
+    const { messages } = get()
+    const index = messages.findIndex(m => m.id === message.id)
+    if (index >= 0) {
+      // 如果存在，更新该消息
+      const newMessages = [...messages]
+      newMessages[index] = message
+      set({ messages: newMessages })
+    }
+    else {
+      // 如果不存在，添加到末尾
+      set({
+        messages: [...messages, message],
+      })
+    }
+  },
   clearSession() {
     set({
       messages: [],
@@ -264,7 +283,8 @@ export const useStore = create<{
 
   async getMessages() {
     const { sessionId } = get()
-    const messages = await app.api.conversations({ conversationId: sessionId }).messages.get()
+    const response = await getSessionMessages(sessionId)
+    // const messages = await app.api.conversations({ conversationId: sessionId }).messages.get()
 
     // const { data } = await fetch(`http://localhost:3000/api/conversations/${sessionId}/messages`, {
     //   method: 'GET',
@@ -275,8 +295,9 @@ export const useStore = create<{
     // })
     //   .then(res => res.json())
 
-    console.log(messages.data)
-    set({ messages: [...messages.data || []] })
+    console.log(response)
+    // console.log(messages.data)
+    set({ messages: [...response] })
   },
 
   async fetchRagBuild() {

@@ -55,7 +55,7 @@ export const router = createHashRouter([
         element: <AppLayout />,
         loader: appLoader,
         children: [
-          { path: 'dashboard', element: <Dashboard /> },
+          { path: 'dashboard/new', element: <Dashboard /> },
           {
             path: 'dashboard/:id',
             element: <Dashboard />,
