@@ -9,10 +9,10 @@ const WorkFlow: React.FC = () => {
   return (
     <div className="h-full flex flex-col">
       <SS />
-      <RagBuildList />
+      {/* <RagBuildList />
       {status === 'loading' && <span>思考中...</span>}
       {status === 'input' && <Input />}
-      {status === 'questions' && <Questions /> }
+      {status === 'questions' && <Questions /> } */}
     </div>
   )
 }

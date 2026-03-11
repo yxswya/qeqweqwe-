@@ -1,7 +1,9 @@
+import type { MessageResponse } from '../utils/elysia'
 import type { Message } from '@/components/Session/types.ts'
-import type { ClarificationQuestion } from '@/components/WorkFlow/types'
+import type { ApiResponse, ClarificationQuestion } from '@/components/WorkFlow/types'
+import { fetchEventSource } from '@microsoft/fetch-event-source'
 import { create } from 'zustand'
-import { app } from '@/components/Session/common.ts'
+import { hasAnswer } from '@/components/WorkFlow/types'
 import { getSessionMessages } from '../utils/elysia'
 
 // RAG 构建进度状态
@@ -29,7 +31,6 @@ export interface SSENormalMessage {
 export const useStore = create<{
   sessionId: string
   status: 'loading' | 'input' | 'none' | 'questions' // 当前操作状态
-  // messages: Array<ApiResponse & { id: string }> // 消息列表
   messages: Message[]
   clarificationQuestions: ClarificationQuestion[]
   ragBuild: any[]
@@ -42,12 +43,16 @@ export const useStore = create<{
   clearSession: () => void
   fetchRagBuild: () => Promise<void>
   setStatus: (obj: Partial<{
+    sessionId: string
     messages: Message[]
     status: 'loading' | 'input' | 'none' | 'questions' // 当前操作状态
     clarificationQuestions: ClarificationQuestion[]
   }>) => void
 
   addMessage: (message: Message) => void
+  statusText: string
+  setStatusText: (text: string) => void
+  parseContent: (content: string) => void
 }>((set, get) => ({
   sessionId: '',
   status: 'input',
@@ -56,6 +61,13 @@ export const useStore = create<{
   ragBuild: [],
   ragBuildProgress: null,
   ragBuildLogs: null,
+
+  statusText: '',
+  setStatusText: (text) => {
+    set({
+      statusText: text,
+    })
+  },
 
   addMessage(message) {
     const { messages } = get()
@@ -98,168 +110,6 @@ export const useStore = create<{
 
     fetchRagBuild().catch(console.error)
     getMessages().catch(console.error)
-
-    // const sse = SessionSSE.getInstance(sessionId)
-
-    // const sse = SSEManager.getInstance()
-    //
-    // // 1. 建立连接
-    // sse.connect(`http://localhost:3000/api/conversations/${sessionId}/sse`, {
-    //   withCredentials: true, // 允许携带 Cookie
-    // })
-    //
-    // // 2. 监听默认的 message 消息
-    // const handleNormalMessage = (data: SSENormalMessage) => {
-    //   const { messages } = get()
-    //   console.log('Received message:', data) // 已经自动解析过 JSON
-    //   if (data.type === 'UPDATE_BOT_MESSAGE') {
-    //     const findIndex = messages.findIndex(el => el.id === data.data.content.id)
-    //     messages.splice(findIndex, 1, data.data.content)
-    //
-    //     if (data.data.content.messageType === 'ASK_MORE_INFO_COMPLETENESS') {
-    //       const content = JSON.parse(data.data.content.content)
-    //       set({
-    //         status: 'questions',
-    //         clarificationQuestions: content.answer.clarification_questions,
-    //         messages: [...messages],
-    //       })
-    //     }
-    //     else if (data.data.content.messageType === 'ASK_MORE_INFO_INTENT') {
-    //       // const content = JSON.parse(data.data.content.content)
-    //       set({
-    //         status: 'input',
-    //         clarificationQuestions: [],
-    //         messages: [...messages],
-    //       })
-    //     }
-    //     else {
-    //       set({
-    //         status: 'none',
-    //         messages: [...messages],
-    //       })
-    //     }
-    //   }
-    //   else {
-    //
-    //   }
-    // }
-    // sse.on('message', handleNormalMessage)
-    //
-    // // 3. 监听后端的自定义事件 (例如后端发送的 event: 'update')
-    // const handleUpdateEvent = (data: any) => {
-    //   console.log('Received update event:', data)
-    // }
-    // sse.on('update', handleUpdateEvent)
-
-    // if (!sse) {
-    //   // 1. 前端进入页面时，先建立 SSE 长连接
-    //   sse = new EventSource(`http://localhost:3000/api/conversations/${sessionId}/sse`, {
-    //     withCredentials: true,
-    //   })
-    // }
-    //
-    // // 2. 监听后台推过来的消息
-    // sse.onmessage = (event) => {
-    //   const { messages } = get()
-    //   const payload = JSON.parse(event.data)
-    //   console.log('payload', payload)
-    //   if (payload.type === 'NEW_BOT_MESSAGE') {
-    //     console.log('收到 AI 回复:', payload.data.content)
-    //
-    //     const message = payload.data.content as Message
-    //     let content: (ApiResponse | string)
-    //
-    //     try {
-    //       content = JSON.parse(message.content)
-    //     }
-    //     catch {
-    //       content = message.content
-    //     }
-    //
-    //     // 查找消息索引，存在则替换，不存在则添加
-    //     const messageIndex = messages.findIndex(m => m.id === message.id)
-    //     const newMessages = [...messages]
-    //     if (messageIndex >= 0) {
-    //       newMessages[messageIndex] = { ...message }
-    //     }
-    //     else {
-    //       newMessages.push({ ...message })
-    //     }
-    //
-    //     if (typeof content === 'string' && content[0] === '{') {
-    //       if (
-    //         hasAnswer(content)
-    //         && Array.isArray(content.answer?.clarification_questions)
-    //         && content.answer?.clarification_questions.length > 0
-    //       ) {
-    //         set({
-    //           status: 'questions',
-    //           clarificationQuestions: content.answer.clarification_questions,
-    //           messages: newMessages,
-    //         })
-    //       }
-    //       else {
-    //         set({
-    //           status: 'input',
-    //           clarificationQuestions: [],
-    //           messages: newMessages,
-    //         })
-    //       }
-    //     }
-    //     else {
-    //       set({
-    //         status: 'none',
-    //         clarificationQuestions: [],
-    //         messages: newMessages,
-    //       })
-    //     }
-    //   }
-    //   else if (payload.type === 'NEW_BOT_MESSAGE_UPDATE') {
-    //     const id = payload.data.id
-    //
-    //     const messageIndex = messages.findIndex(msg => msg.id === id)
-    //     messages[messageIndex] = payload.data.content.result
-    //     set({ messages: [...messages] })
-    //   }
-    //   else if (payload.type === 'rag_build_progress') {
-    //     // RAG 构建进度更新
-    //     console.log('RAG 构建进度:', payload.data)
-    //     set({ ragBuildProgress: payload.data })
-    //   }
-    //   else if (payload.type === 'rag_build_logs') {
-    //     // RAG 构建日志更新
-    //     console.log('RAG 构建日志:', payload.data)
-    //     set({ ragBuildLogs: payload.logs })
-    //   }
-    //   else if (payload.type === 'rag_build_complete') {
-    //     // RAG 构建完成
-    //     console.log('RAG 构建完成:', payload.data)
-    //     set({
-    //       ragBuildProgress: {
-    //         job_id: payload.data.job_id,
-    //         state: 'succeeded',
-    //         progress: 1,
-    //         message: '构建完成',
-    //       },
-    //     })
-    //     fetchRagBuild()
-    //   }
-    //   else if (payload.type === 'rag_build_error') {
-    //     // RAG 构建失败
-    //     console.error('RAG 构建失败:', payload.data)
-    //     set({
-    //       ragBuildProgress: {
-    //         job_id: payload.data.job_id,
-    //         state: 'failed',
-    //         progress: 0,
-    //         message: payload.data.message,
-    //       },
-    //     })
-    //   }
-    //   else if (payload.type === 'ERROR') {
-    //     console.error('出错了')
-    //   }
-    // }
   },
 
   async createSession() {
@@ -284,19 +134,6 @@ export const useStore = create<{
   async getMessages() {
     const { sessionId } = get()
     const response = await getSessionMessages(sessionId)
-    // const messages = await app.api.conversations({ conversationId: sessionId }).messages.get()
-
-    // const { data } = await fetch(`http://localhost:3000/api/conversations/${sessionId}/messages`, {
-    //   method: 'GET',
-    //   credentials: 'include', // 关键设置
-    //   headers: {
-    //     'Content-Type': 'application/json',
-    //   },
-    // })
-    //   .then(res => res.json())
-
-    console.log(response)
-    // console.log(messages.data)
     set({ messages: [...response] })
   },
 
@@ -319,26 +156,98 @@ export const useStore = create<{
     })
   },
 
-  async fetchMessage(content) {
-    const { messages, sessionId } = get()
-    if (!sessionId)
-      return
-
-    set({ status: 'loading' })
-    const result = await app.api.conversations({
-      id: sessionId,
-    }).messages.post({
-      content,
-      messageType: 'text',
+  async fetchMessage(text) {
+    const { setStatusText, sessionId, setStatus, parseContent } = get()
+    setStatus({
+      status: 'loading',
     })
 
-    if (result.data) {
-      const { userMessage, botMessage } = result.data
-      console.log('Received message:', userMessage, botMessage)
-      set({
-        messages: [...messages, userMessage, botMessage],
+    await fetchEventSource(`http://localhost:3002/api/v1/session/chat/${sessionId || 'new'}`, {
+      // 关键配置：设置为 true 以携带 Cookie
+      credentials: 'include',
+      // 如果是跨域请求，建议明确指定 mode 为 'cors'
+      mode: 'cors',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messageId: 'xx',
+        text,
+      }),
+
+      // 当接收到后端 yield sse() 推送的消息时
+      onmessage(ev) {
+        // ev.event 对应你后端的 event 字段
+        // ev.data  对应你后端的 data 字段（字符串形式）
+        console.log(ev)
+
+        if (ev.event === 'status' || ev.event === 'heartbeat') {
+          // 解析去掉双引号
+          setStatusText(ev.data)
+        }
+        else if (ev.event === 'result') {
+          setStatusText('思考完毕！')
+          // setResult(ev.data)
+          parseContent(ev.data)
+        }
+        else if (ev.event === 'error') {
+          setStatusText(`发生错误: ${ev.data}`)
+        }
+      },
+
+      onclose() {
+        console.log('连接已正常关闭')
+      },
+
+      onerror(err) {
+        setStatus({
+          status: 'none',
+          clarificationQuestions: [],
+        })
+        console.error('流异常断开', err)
+        setStatusText('连接断开重试中...')
+        throw err // 抛出错误会自动触发重连
+      },
+    })
+  },
+
+  parseContent(response: string) {
+    const { setStatus, addMessage } = get()
+    const data = JSON.parse(response) as MessageResponse
+    console.log(data)
+
+    if (data.type === 'json') {
+      const content = JSON.parse(data.content) as ApiResponse
+      const sessionId = hasAnswer(content) ? content.answer.session_id : content.completeness.session_id
+      if (hasAnswer(content)) {
+        console.log(content.answer.clarification_questions)
+        if (content.answer.clarification_questions.length > 0) {
+          setStatus({
+            sessionId,
+            status: 'questions',
+            clarificationQuestions: content.answer.clarification_questions,
+          })
+        }
+      }
+      else {
+        console.log(content.intent.actions)
+        if (content.intent.actions.includes('ASK_MORE_INFO')) {
+          setStatus({
+            sessionId,
+            status: 'input',
+            clarificationQuestions: [],
+          })
+        }
+      }
+    }
+    else {
+      setStatus({
+        status: 'none',
+        clarificationQuestions: [],
       })
     }
+    addMessage(data)
   },
 }))
 

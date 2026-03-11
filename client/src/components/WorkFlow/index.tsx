@@ -172,10 +172,10 @@ const WorkFlow: React.FC = () => {
     <div className="h-full flex flex-col">
       {/* <List /> */}
       <RagBuildList />
-      {status === 'loading' && <span>思考中...</span>}
+      {/* {status === 'loading' && <span>思考中...</span>}
       {status === 'input' && <Input />}
       {status === 'questions' && <Questions /> }
-      <NewInput />
+      <NewInput /> */}
     </div>
   )
 }
