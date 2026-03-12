@@ -19,9 +19,28 @@ export interface MessageResponse {
   rags: Rag[]
 }
 
-export async function getSessionMessages(sessionId: string): Promise<MessageResponse[]> {
+export interface FileResponse {
+  id: string
+  sessionId: string
+  messageId: string
+  fileName: string
+  fileUrl: string
+  createdAt: string
+}
+
+export interface SessionResponse {
+  id: string
+  title: string
+  isGroup: boolean
+  lastMessageAt: string
+  createdAt: string
+  messages: MessageResponse[]
+  files: FileResponse[]
+}
+
+export async function getSessionMessages(sessionId: string): Promise<SessionResponse | undefined> {
   if (!sessionId)
-    return []
+    return
 
   return await fetch(
     `http://localhost:3002/api/v1/session/chat/${sessionId}`,

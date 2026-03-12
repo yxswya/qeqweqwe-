@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router'
 import SS from './SS'
 
 const WorkFlow: React.FC = () => {
-  const [list, setList] = React.useState<Array<{ id: string }>>([])
+  const [list, setList] = React.useState<Array<{ id: string, title: string }>>([])
   const navigate = useNavigate()
 
   React.useEffect(() => {
@@ -25,7 +25,7 @@ const WorkFlow: React.FC = () => {
         <div className="flex bg-gray-200 items-center">
           <span>切换会话</span>
           <select name="" id="" onChange={e => jump(e.target.value)}>
-            {list.map(el => <option key={el.id} value={el.id}>{el.id}</option>)}
+            {list.map(el => <option key={el.id} value={el.id}>{el.title}</option>)}
           </select>
         </div>
       </div>

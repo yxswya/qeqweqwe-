@@ -110,28 +110,33 @@ const RagSimple: React.FC<{ message: Message }> = ({ message }) => {
   }
 
   return (
-    <div className="px-4">
+    <div className="px-4 py-3">
       <button
         onClick={() => handleRagBuild()}
-        className="font-bold underline cursor-pointer hover:text-blue-800"
+        className="font-bold underline cursor-pointer hover:text-blue-800 px-3 py-2"
       >
-        Rag 构建
+        上传文件即刻构建
       </button>
       <input ref={inputRef} type="file" multiple style={{ display: 'none' }} onChange={e => submit(e.target.files)} />
 
-      {
-        message?.rags?.map((el, index) => {
-          return (
-            <div key={el.id}>
-              <Link className="text-blue-600" to={`/app/rag-answer/${el.indexVersion}`}>
-                {index + 1}
-                .
-                {el.indexVersion}
-              </Link>
-            </div>
-          )
-        })
-      }
+      <div className="pl-4">
+        {
+          message?.rags.length > 0 && <h3>构建记录(点击即可对话)</h3>
+        }
+        {
+          message?.rags?.map((el, index) => {
+            return (
+              <div key={el.id} className="text-lg font-bold">
+                <Link className="text-blue-600 underline font-bold" to={`/app/rag-answer/${el.indexVersion}`}>
+                  {index + 1}
+                  .
+                  {el.indexVersion}
+                </Link>
+              </div>
+            )
+          })
+        }
+      </div>
     </div>
   )
 }

@@ -25,6 +25,18 @@ const TrainToopit: React.FC<{ message: Message }> = ({ message }) => {
     })
   }
 
+  const trainEvaluate = () => {
+    fetch('http://localhost:3002/api/v1/train/evaluate', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    }).then(res => res.json()).then((data) => {
+      console.log(data)
+    })
+  }
+
   const trainModel = (model_id: string) => {
     fetch('http://localhost:3002/api/v1/train/start', {
       method: 'POST',
@@ -41,8 +53,9 @@ const TrainToopit: React.FC<{ message: Message }> = ({ message }) => {
   }
 
   return (
-    <div className="px-5 pb-3 wrap-break-word w-auto text-[18px] min-h-12.5 flex justify-end items-center">
+    <div className="px-5 pb-3 wrap-break-word w-auto text-[18px] min-h-12.5 flex justify-end items-center gap-2">
       <span className="underline text-blue-600 font-bold cursor-pointer" onClick={() => openModelSelect()}>补充训练参数</span>
+      <span className="underline text-blue-600 font-bold cursor-pointer" onClick={() => trainEvaluate()}>训练评估/仅估算指标</span>
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
         <div className="markdown-body w-260 h-200 relative">
@@ -106,7 +119,7 @@ const TrainToopit: React.FC<{ message: Message }> = ({ message }) => {
           </div>
 
           {loading && (
-            <div className="w-full h-full absolute top-0 left-0 bg-orange-500 flex justify-center items-center">
+            <div className="w-full h-full absolute top-0 left-0 bg-white flex justify-center items-center">
               <Loader2Icon size={50} className="animate-spin" />
             </div>
           ) }

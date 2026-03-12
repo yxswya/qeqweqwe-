@@ -1,4 +1,4 @@
-import type { MessageResponse } from '../utils/elysia'
+import type { FileResponse, MessageResponse } from '../utils/elysia'
 import type { Message } from '@/components/Session/types.ts'
 import type { ApiResponse, ClarificationQuestion } from '@/components/WorkFlow/types'
 import { fetchEventSource } from '@microsoft/fetch-event-source'
@@ -31,7 +31,9 @@ export interface SSENormalMessage {
 export const useStore = create<{
   sessionId: string
   status: 'loading' | 'input' | 'none' | 'questions' // 当前操作状态
+
   messages: Message[]
+  files: FileResponse[]
   clarificationQuestions: ClarificationQuestion[]
   ragBuild: any[]
   ragBuildProgress: RagBuildProgress | null
@@ -56,7 +58,9 @@ export const useStore = create<{
 }>((set, get) => ({
   sessionId: '',
   status: 'input',
+
   messages: [],
+  files: [],
   clarificationQuestions: [],
   ragBuild: [],
   ragBuildProgress: null,
@@ -134,7 +138,17 @@ export const useStore = create<{
   async getMessages() {
     const { sessionId } = get()
     const response = await getSessionMessages(sessionId)
-    set({ messages: [...response] })
+    console.log(response)
+
+    if (!response)
+      return
+
+    const { messages, files } = response
+
+    set({
+      messages: [...messages],
+      files: [...files],
+    })
   },
 
   async fetchRagBuild() {
