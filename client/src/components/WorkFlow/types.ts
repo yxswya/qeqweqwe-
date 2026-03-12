@@ -63,6 +63,84 @@ export interface ApiResponseAnswer {
   }
 }
 
+// ========================================
+// 1. intent 类型：从给定列表中严格选择
+// ========================================
+export type Intent
+  = | 'agent.create'
+    | 'agent.update'
+    | 'agent.describe'
+    | 'workflow.create'
+    | 'workflow.update'
+    | 'workflow.run'
+    | 'rag.index'
+    | 'rag.retrieve'
+    | 'rag.evaluate'
+    | 'train.start'
+    | 'train.evaluate'
+    | 'data.clean'
+    | 'data.import'
+    | 'data.inspect'
+    | 'billing.pay'
+    | 'exec.run'
+    | 'orders.query'
+    | 'auth.login'
+    | 'auth.logout'
+    | 'ops.audit'
+    | 'other.unknown'
+
+// ========================================
+// 2. domain 类型：从给定列表中严格选择
+// ========================================
+export type Domain
+  = | 'agent'
+    | 'workflow'
+    | 'rag'
+    | 'train'
+    | 'data'
+    | 'billing'
+    | 'exec'
+    | 'orders'
+    | 'auth'
+    | 'ops'
+    | 'other'
+
+// ========================================
+// 3. sub_intent 类型
+//    方案 A：严格联合类型（仅包含示例值，适用于值集固定场景）
+//    方案 B：宽松字符串（接受任何 string，但 IDE 会提示示例值，推荐）
+// ========================================
+
+// 方案 A：严格联合（如果业务确保不会出现其他值）
+export type SubIntentStrict
+  = | 'create' | 'update' | 'debug' | 'describe' | 'delete' // agent
+    | 'create' | 'update' | 'run' | 'list' | 'describe' // workflow
+    | 'create_index' | 'update_index' | 'query' | 'evaluate' // rag
+    | 'start' | 'resume' | 'stop' | 'evaluate' // train
+    | 'clean' | 'import' | 'export' | 'inspect' // data
+    | 'pay' | 'invoice' | 'balance' | 'usage' // billing
+    | 'run_script' | 'run_sql' | 'run_shell' // exec
+    | 'query' | 'cancel' | 'create' // orders
+    | 'login' | 'logout' | 'refresh' // auth
+    | 'audit' | 'log_query' // ops
+    | 'unknown' // fallback
+
+// 方案 B：宽松类型（推荐，兼顾类型提示与扩展性）
+export type SubIntent
+  = | 'create' | 'update' | 'debug' | 'describe' | 'delete'
+    | 'create' | 'update' | 'run' | 'list' | 'describe'
+    | 'create_index' | 'update_index' | 'query' | 'evaluate'
+    | 'start' | 'resume' | 'stop' | 'evaluate'
+    | 'clean' | 'import' | 'export' | 'inspect'
+    | 'pay' | 'invoice' | 'balance' | 'usage'
+    | 'run_script' | 'run_sql' | 'run_shell'
+    | 'query' | 'cancel' | 'create'
+    | 'login' | 'logout' | 'refresh'
+    | 'audit' | 'log_query'
+    | 'unknown'
+  // 允许其他未列出的字符串，同时保留上述字面量提示
+    | (string & {})
+
 export interface ApiResponseIntent {
   stage: 'intent'
   completeness: {
@@ -73,6 +151,12 @@ export interface ApiResponseIntent {
     stage: StageType
   }
   intent: {
+    /** 顶层意图，用于路由到具体业务能力 */
+    intent: Intent
+    /** 业务域，用于粗粒度路由 */
+    domain: Domain
+    /** 细分意图，不同 domain 下有典型取值 */
+    sub_intent: SubIntent // 如使用严格模式可替换为 SubIntentStrict
     actions: Array<ActionType>
     artifacts: Array<ArtifactType>
     priority: 'low' | 'normal' | 'high' | 'urgent'

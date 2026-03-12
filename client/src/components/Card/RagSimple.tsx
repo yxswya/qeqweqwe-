@@ -1,8 +1,10 @@
 import type * as React from 'react'
 import type { Message } from '@/components/Session/types.ts'
+import { fetchEventSource } from '@microsoft/fetch-event-source'
 import { useEffect, useRef, useState } from 'react'
-import { app } from '@/components/Session/common.ts'
-import { useStore } from '@/components/WorkFlow/store'
+import { Link } from 'react-router'
+// import { app } from '@/components/Session/common.ts'
+import { useStore } from '@/components/Session/store'
 
 interface UploadedFile {
   name: string
@@ -11,47 +13,12 @@ interface UploadedFile {
 }
 
 const RagSimple: React.FC<{ message: Message }> = ({ message }) => {
-  const { sessionId, ragBuildProgress, ragBuildLogs } = useStore()
+  const { sessionId, ragBuildProgress, ragBuildLogs, messages, setStatus } = useStore()
   const inputRef = useRef<HTMLInputElement>(null)
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([])
   const [logs, setLogs] = useState<string[]>([])
-  const isInitializedRef = useRef(false)
-
-  // 初始化时恢复正在构建的任务
-  useEffect(() => {
-    if (!sessionId || isInitializedRef.current)
-      return
-
-    const initializeFiles = async () => {
-      // 从后端获取最新的构建记录
-      try {
-        const response = await fetch(`http://localhost:3000/api/conversations/${sessionId}/rag/builds`, {
-          credentials: 'include',
-        })
-        const result = await response.json()
-        if (result.success && result.data && result.data.length > 0) {
-          const latestBuild = result.data[0]
-          // 检查是否是异步任务且未完成（通过判断是否有空的 indexUri）
-          if (latestBuild.async && !latestBuild.indexUri && latestBuild.runId) {
-            // 这是一个正在进行的异步任务
-            console.log('发现正在进行的构建任务:', latestBuild.runId)
-            setUploadedFiles([{
-              name: '构建中...',
-              path: '',
-              status: 'building',
-            }])
-          }
-        }
-      }
-      catch (error) {
-        console.error('检查构建状态失败:', error)
-      }
-
-      isInitializedRef.current = true
-    }
-
-    initializeFiles().catch(console.error)
-  }, [sessionId])
+  // const [statusText, setStatusText] = useState('')
+  // const [result, setResult] = useState('')
 
   // 监听 ragBuildProgress 变化，更新文件状态
   useEffect(() => {
@@ -96,6 +63,60 @@ const RagSimple: React.FC<{ message: Message }> = ({ message }) => {
     return `${(bytes / k ** i).toFixed(2)} ${sizes[i]}`
   }
 
+  const handleChat = async (filePaths: string[]) => {
+    // setStatusText('准备连接...')
+    // setResult('')
+
+    // 使用库发起 POST 请求的 SSE
+    await fetchEventSource(`http://localhost:3002/api/v1/rag/build/${sessionId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        file_paths: filePaths,
+        message_id: message.id,
+      }),
+
+      // 当接收到后端 yield sse() 推送的消息时
+      onmessage(ev) {
+        // ev.event 对应你后端的 event 字段
+        // ev.data  对应你后端的 data 字段（字符串形式）
+
+        console.log(ev)
+        if (ev.event === 'status' || ev.event === 'heartbeat') {
+          // 解析去掉双引号
+          // setStatusText(ev.data)
+        }
+        else if (ev.event === 'result') {
+          // setStatusText('思考完毕！')
+          // message.rags = ev.data
+          const data = JSON.parse(ev.data)
+          message.rags.push(data)
+
+          setStatus({
+            messages: [...messages],
+          })
+          // setResult(JSON.parse(ev.data))
+        }
+        else if (ev.event === 'error') {
+          // setStatusText(`发生错误: ${ev.data}`)
+        }
+      },
+
+      onclose() {
+        console.log('连接已正常关闭')
+      },
+
+      onerror(err) {
+        console.error('流异常断开', err)
+        // setStatusText('连接断开重试中...')
+        throw err // 抛出错误会自动触发重连
+      },
+    })
+  }
+
   // 调用 RAG 构建接口
   const callRagBuild = async (filePaths: string[]) => {
     if (!sessionId) {
@@ -106,18 +127,7 @@ const RagSimple: React.FC<{ message: Message }> = ({ message }) => {
     setUploadedFiles(prev => prev.map(f => ({ ...f, status: 'building' })))
 
     try {
-      const response = await app.api.conversations({ id: sessionId }).rag.build.post({
-        file_paths: filePaths,
-        message_id: message.id,
-      })
-
-      if (response.data?.success) {
-        console.log('RAG build initiated:', response.data)
-      }
-      else {
-        console.error('RAG build failed:', response.error)
-        setUploadedFiles(prev => prev.map(f => ({ ...f, status: 'error' })))
-      }
+      handleChat(filePaths)
     }
     catch (error) {
       console.error('RAG build error:', error)
@@ -141,13 +151,19 @@ const RagSimple: React.FC<{ message: Message }> = ({ message }) => {
     setUploadedFiles(initialFiles)
 
     try {
+      const formData = new FormData()
+      for (let i = 0; i < fileArray.length; i++) {
+        formData.append('files', fileArray[i])
+      }
       // 使用 @elysiajs/eden 调用上传接口
-      const response = await app.api.upload.post({
-        files: fileArray,
-      } as any)
+      const response = await fetch('http://localhost:3002/api/v1/upload', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      }).then(res => res.json())
 
-      if (response.data?.success) {
-        const paths = response.data.data
+      if (response.success) {
+        const paths = response.data
         console.log('Upload successful:', paths)
         setUploadedFiles(prev =>
           prev.map((f, i) => ({
@@ -239,8 +255,21 @@ const RagSimple: React.FC<{ message: Message }> = ({ message }) => {
       >
         Rag 构建
       </button>
-
       <input ref={inputRef} type="file" multiple style={{ display: 'none' }} onChange={e => submit(e.target.files)} />
+
+      {
+        message?.rags?.map((el, index) => {
+          return (
+            <div key={el.id}>
+              <Link className="text-blue-600" to={`/app/rag-answer/${el.indexVersion}`}>
+                {index + 1}
+                .
+                {el.indexVersion}
+              </Link>
+            </div>
+          )
+        })
+      }
 
       {/* 上传结果展示 */}
       {uploadedFiles.length > 0 && (

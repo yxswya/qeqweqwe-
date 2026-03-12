@@ -1,7 +1,8 @@
 import type { Message } from '@/components/Session/types.ts'
-import type { ApiResponse } from '@/components/WorkFlow/types.ts'
+import type { ActionType, ApiResponse, ApiResponseIntent } from '@/components/WorkFlow/types.ts'
 import * as React from 'react'
 import Loading from '@/components/Card/Loading.tsx'
+import RagSimple from '@/components/Card/RagSimple'
 // import RagSimple from '@/components/Card/RagSimple.tsx'
 import Text from '@/components/Card/Text.tsx'
 import { isBot } from '@/components/Session/common.ts'
@@ -91,6 +92,10 @@ export function renderMessageListItem(message: Message) {
 
   // =========== 消息类型进行处理 ==================
 
+  if (message.type === 'text' && message.content === 'Rag 构建') {
+    return <RagSimple message={message} />
+  }
+
   if (message.type === 'text') {
     return <Text content={message.content} />
   }
@@ -102,26 +107,24 @@ export function renderMessageListItem(message: Message) {
       return <Text content={content.answer.normalized_request.ai_summary} />
     }
     else {
-      return <Text content={content.workflow_hint.reason} />
+      return (
+        <div>
+          <Text content={content.workflow_hint.reason} />
+          <Actions actions={content.intent.actions} />
+
+          {
+            content.intent.actions.includes('ASK_MORE_INFO')
+            && content.intent.intent === 'train.start'
+            && (
+              <div className="px-5 pb-3 wrap-break-word w-auto text-[18px] min-h-12.5 flex justify-end items-center">
+                <span className="underline text-blue-600 font-bold cursor-pointer">补充训练参数</span>
+              </div>
+            )
+          }
+        </div>
+      )
     }
   }
-
-  // if (message.messageType === 'LOADING') {
-  //   return <Loading />
-  // }
-
-  // if (message.messageType === 'RAG_BUILD_INDEX') {
-  //   return <RagSimple message={message} />
-  // }
-
-  // if (message.messageType === 'ASK_MORE_INFO_COMPLETENESS') {
-  //   return <Text content={(content as ApiResponseAnswer).answer.normalized_request.ai_summary} />
-  // }
-
-  // if (message.messageType === 'ASK_MORE_INFO_INTENT') {
-  //   return <Text content={(content as ApiResponseIntent).workflow_hint.reason} />
-  // }
-
   return <Text content={message.content} />
 }
 
@@ -133,6 +136,43 @@ function parseContent<T>(content: string) {
     console.error('数据解析异常', content)
     return {}
   }
+}
+
+const actionsMap: Record<ActionType, string> = {
+  AGENT_CREATE: '创建智能体（未实现）',
+  AGENT_UPDATE: '更新智能体',
+  WORKFLOW_CREATE: '工作流创建',
+  WORKFLOW_RUN: '运行工作流',
+  RAG_BUILD_INDEX: '构建知识库索引',
+  RAG_QUERY: '知识库查询',
+  TRAIN_START: '开始训练',
+  DATA_CLEAN: '数据治理',
+  DATA_IMPORT: '数据导入',
+  ASK_MORE_INFO: '提供更多...',
+}
+
+function Actions({ actions }: { actions: ActionType[] }) {
+  const acs = actions.filter((el) => {
+    return !['ASK_MORE_INFO'].includes(el)
+  })
+
+  if (acs.length === 0) {
+    return <></>
+  }
+
+  return (
+    <div className="px-5 pb-3 wrap-break-word w-auto text-[18px] min-h-12.5 flex justify-end items-center">
+      {
+        acs.map((el) => {
+          return (
+            <span key={el} className="underline text-blue-600 font-bold cursor-pointer">
+              {actionsMap[el]}
+            </span>
+          )
+        })
+      }
+    </div>
+  )
 }
 
 export default MessageListItem

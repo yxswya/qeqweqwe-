@@ -8,13 +8,18 @@ const SideBar: React.FC = () => {
     <div className="w-68 bg-white flex flex-col shrink-0 p-4">
       <ul>
         <li>
-          <NavLink to="/app/dashboard/new" className={linkClass}>
-            Dashboard
+          <NavLink to="/app/dashboard" className={linkClass}>
+            会话
           </NavLink>
         </li>
         <li>
           <NavLink to="/app/settings" className={linkClass}>
-            Settings
+            设置
+          </NavLink>
+        </li>
+        <li>
+          <NavLink to="/app/rag-answer" className={linkClass}>
+            RAG构建产物问答
           </NavLink>
         </li>
       </ul>

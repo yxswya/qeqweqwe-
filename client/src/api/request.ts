@@ -54,11 +54,6 @@ request.interceptors.request.use(
       delete config.headers['Content-Type']
     }
 
-    // 调试日志（开发环境）
-    if (env.isDev) {
-      console.log(`%c>>>>>> ${config.url} - ${config.method?.toUpperCase()}`, 'color: green;font-weight: bold;', config)
-    }
-
     return config
   },
   (error: AxiosError) => {
@@ -74,11 +69,6 @@ request.interceptors.response.use(
     // 检查业务错误码：4001 → Token 过期
     if (code === ERROR_CODE.TOKEN_EXPIRED) {
       return handleTokenExpired(response.config) // 处理刷新逻辑
-    }
-
-    // 调试日志
-    if (env.isDev) {
-      console.log(`%c<<<<<< ${response.config.url}`, 'color: green;font-weight: bold;', response.data)
     }
 
     // 如果后端有 { code, data, message } 格式，可在这里解包

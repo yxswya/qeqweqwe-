@@ -12,6 +12,7 @@ import LoginPage, {
   action as loginAction,
   loader as loginLoader,
 } from './pages/Login'
+import RagAnswer from './pages/RagAnswer'
 import Settings from './pages/Settings'
 import UserProfile from './pages/UserProfile'
 
@@ -55,7 +56,7 @@ export const router = createHashRouter([
         element: <AppLayout />,
         loader: appLoader,
         children: [
-          { path: 'dashboard/new', element: <Dashboard /> },
+          { path: 'dashboard', element: <Dashboard /> },
           {
             path: 'dashboard/:id',
             element: <Dashboard />,
@@ -68,6 +69,8 @@ export const router = createHashRouter([
           },
           { path: 'settings', element: <Settings /> },
           { path: 'user-profile', element: <UserProfile /> },
+          { path: 'rag-answer', element: <RagAnswer /> },
+          { path: 'rag-answer/:id', element: <RagAnswer /> },
         ],
       },
 

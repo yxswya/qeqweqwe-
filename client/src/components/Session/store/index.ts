@@ -113,22 +113,22 @@ export const useStore = create<{
   },
 
   async createSession() {
-    const response = await fetch('http://localhost:3000/api/conversations', {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ participantIds: [], title: `会话${Date.now()}` }),
-    })
-      .then(res => res.json())
+    // const response = await fetch('http://localhost:3000/api/conversations', {
+    //   method: 'POST',
+    //   credentials: 'include',
+    //   headers: {
+    //     'Content-Type': 'application/json',
+    //   },
+    //   body: JSON.stringify({ participantIds: [], title: `会话${Date.now()}` }),
+    // })
+    //   .then(res => res.json())
 
-    const { conversationId } = response.data
-    set({
-      sessionId: conversationId,
-    })
+    // const { conversationId } = response.data
+    // set({
+    //   sessionId: conversationId,
+    // })
 
-    return conversationId
+    // return conversationId
   },
 
   async getMessages() {
@@ -138,22 +138,22 @@ export const useStore = create<{
   },
 
   async fetchRagBuild() {
-    const { sessionId } = get()
-    if (!sessionId)
-      return
+    // const { sessionId } = get()
+    // if (!sessionId)
+    //   return
 
-    const { data } = await fetch(`http://localhost:3000/api/conversations/${sessionId}/rag/builds`, {
-      method: 'GET',
-      credentials: 'include', // 关键设置
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    })
-      .then(res => res.json())
+    // const { data } = await fetch(`http://localhost:3000/api/conversations/${sessionId}/rag/builds`, {
+    //   method: 'GET',
+    //   credentials: 'include', // 关键设置
+    //   headers: {
+    //     'Content-Type': 'application/json',
+    //   },
+    // })
+    //   .then(res => res.json())
 
-    set({
-      ragBuild: data,
-    })
+    // set({
+    //   ragBuild: data,
+    // })
   },
 
   async fetchMessage(text) {
@@ -162,7 +162,7 @@ export const useStore = create<{
       status: 'loading',
     })
 
-    await fetchEventSource(`http://localhost:3002/api/v1/session/chat/${sessionId || 'new'}`, {
+    await fetchEventSource(`http://localhost:3002/api/v1/session/chat/${sessionId || ''}`, {
       // 关键配置：设置为 true 以携带 Cookie
       credentials: 'include',
       // 如果是跨域请求，建议明确指定 mode 为 'cors'
@@ -220,6 +220,7 @@ export const useStore = create<{
     if (data.type === 'json') {
       const content = JSON.parse(data.content) as ApiResponse
       const sessionId = hasAnswer(content) ? content.answer.session_id : content.completeness.session_id
+      console.log('sessionId', sessionId)
       if (hasAnswer(content)) {
         console.log(content.answer.clarification_questions)
         if (content.answer.clarification_questions.length > 0) {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import useStore from '../store'
 
@@ -40,11 +40,32 @@ function App() {
   const navigate = useNavigate()
   const { sessionId, status, fetchMessage } = useStore()
 
+  const prevIdRef = useRef(sessionId) // 用 ref 保存上一次的 id
+
   useEffect(() => {
-    if (sessionId) {
-      navigate(`/app/dashboard/${sessionId}`)
+    const prevId = prevIdRef.current // 旧的 id
+
+    if (prevId !== sessionId) {
+      console.log(`id 从 ${prevId} 变为 ${sessionId}`)
+      if (sessionId) {
+        navigate(`/app/dashboard/${sessionId}`)
+      }
+      else {
+        navigate(`/app/dashboard`)
+      }
+      // 在这里执行数据获取或其他逻辑
     }
-  }, [sessionId, navigate])
+
+    // 更新 ref 为当前 id，供下次比较
+    prevIdRef.current = sessionId
+  }, [sessionId]) // 依赖 id，只有 id 变化时才触发
+
+  // useEffect(() => {
+  //   if (sessionId) {
+  //     console.log(sessionId)
+  //     // navigate(`/app/dashboard/${sessionId}`)
+  //   }
+  // }, [sessionId, navigate])
 
   const handleChat = async () => {
     setStatusText('准备连接...')
