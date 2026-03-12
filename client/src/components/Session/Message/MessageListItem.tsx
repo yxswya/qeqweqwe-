@@ -1,12 +1,11 @@
 import type { Message } from '@/components/Session/types.ts'
-import type { ActionType, ApiResponse, ApiResponseIntent } from '@/components/WorkFlow/types.ts'
+import type { ActionType, ApiResponse } from '@/components/WorkFlow/types.ts'
 import * as React from 'react'
 import Loading from '@/components/Card/Loading.tsx'
 import RagSimple from '@/components/Card/RagSimple'
-// import RagSimple from '@/components/Card/RagSimple.tsx'
 import Text from '@/components/Card/Text.tsx'
+import TrainToopit from '@/components/Card/Train/Toopit'
 import { isBot } from '@/components/Session/common.ts'
-// import type { Message } from '@/components/WorkFlow/store'
 import { hasAnswer } from '@/components/WorkFlow/types.ts'
 
 const MessageListItem: React.FC<{ message: Message }> = ({ message }) => {
@@ -116,9 +115,7 @@ export function renderMessageListItem(message: Message) {
             content.intent.actions.includes('ASK_MORE_INFO')
             && content.intent.intent === 'train.start'
             && (
-              <div className="px-5 pb-3 wrap-break-word w-auto text-[18px] min-h-12.5 flex justify-end items-center">
-                <span className="underline text-blue-600 font-bold cursor-pointer">补充训练参数</span>
-              </div>
+              <TrainToopit message={message} />
             )
           }
         </div>
