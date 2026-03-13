@@ -68,20 +68,20 @@ const Deploy: React.FC = () => {
         >
           <img
             className="w-full h-full absolute top-0 left-0"
-            src="/card/deploy/私有化一体机交付-背景图片1.svg"
+            src="./card/deploy/私有化一体机交付-背景图片1.svg"
             alt=""
           />
 
           <img
             className="w-full h-full absolute top-0 left-0 z-5 pointer-events-none"
-            src="/card/deploy/私有化一体机交付-背景图片2.svg"
+            src="./card/deploy/私有化一体机交付-背景图片2.svg"
             alt=""
           />
           <div className="flex gap-2.5 relative z-1">
             <div>
               <img
                 className="w-11.25 h-11.25"
-                src="/card/deploy/私有化一体机交付-图标.png"
+                src="./card/deploy/私有化一体机交付-图标.png"
                 alt="图标"
               />
             </div>
@@ -96,8 +96,8 @@ const Deploy: React.FC = () => {
             <div className="shrink-0 flex items-center">
               <AnimatedIcon
                 selected={selectedEnvironment === 'cloud'}
-                selectedSrc="/card/deploy/私有化一体机交付-选中效果.svg"
-                unselectedSrc="/card/deploy/私有化一体机交付-未选中效果.svg"
+                selectedSrc="./card/deploy/私有化一体机交付-选中效果.svg"
+                unselectedSrc="./card/deploy/私有化一体机交付-未选中效果.svg"
                 selectedClassName="w-6.5 h-6.5"
                 unselectedClassName="w-4.75 h-4.75"
               />
@@ -107,34 +107,34 @@ const Deploy: React.FC = () => {
           <div className="flex flex-col gap-2.5 mt-4.5 pl-4.5">
             <div className="flex gap-2 items-center rounded-md relative">
               <img
-                src="/card/deploy/私有化一体机交付-背景图片3.svg"
+                src="./card/deploy/私有化一体机交付-背景图片3.svg"
                 className="w-57.75 h-9.5 relative z-0"
                 alt=""
               />
               <div className="w-full h-full absolute top-0 left-0 z-1 flex gap-2.25 items-center px-2.5">
-                <img src="/card/deploy/私有化一体机交付-桌面级 1PFLOP 算力.svg" alt="" />
+                <img src="./card/deploy/私有化一体机交付-桌面级 1PFLOP 算力.svg" alt="" />
                 <span className="text-[12px]">桌面级 1PFLOP 算力</span>
               </div>
             </div>
             <div className="flex gap-2 items-center rounded-md relative">
               <img
-                src="/card/deploy/私有化一体机交付-背景图片3.svg"
+                src="./card/deploy/私有化一体机交付-背景图片3.svg"
                 className="w-57.75 h-9.5 relative z-0"
                 alt=""
               />
               <div className="w-full h-full absolute top-0 left-0 z-1 flex gap-2.25 items-center px-2.5">
-                <img src="/card/deploy/私有化一体机交付-数据隐私安全.svg" alt="" />
+                <img src="./card/deploy/私有化一体机交付-数据隐私安全.svg" alt="" />
                 <span className="text-[12px]">数据隐私安全</span>
               </div>
             </div>
             <div className="flex gap-2 items-center rounded-md relative">
               <img
-                src="/card/deploy/私有化一体机交付-背景图片3.svg"
+                src="./card/deploy/私有化一体机交付-背景图片3.svg"
                 className="w-57.75 h-9.5 relative z-0"
                 alt=""
               />
               <div className="w-full h-full absolute top-0 left-0 z-1 flex gap-2.25 items-center px-2.5">
-                <img src="/card/deploy/私有化一体机交付-即刻交付.svg" alt="" />
+                <img src="./card/deploy/私有化一体机交付-即刻交付.svg" alt="" />
                 <span className="text-[12px]">即刻交付</span>
               </div>
             </div>
@@ -142,12 +142,12 @@ const Deploy: React.FC = () => {
 
           <div className="flex gap-2 items-center rounded-md relative mt-2.5">
             <img
-              src="/card/deploy/私有化一体机交付-背景图片4.svg"
+              src="./card/deploy/私有化一体机交付-背景图片4.svg"
               className="w-96.5 h-9 relative z-0"
               alt=""
             />
             <div className="w-full h-full absolute top-0 left-0 z-1 flex gap-2.25 items-center px-2.5">
-              <img src="/card/deploy/私有化一体机交付-全新.svg" alt="" />
+              <img src="./card/deploy/私有化一体机交付-全新.svg" alt="" />
               <span className="text-[12px]">
                 支持一次购置/租货/分期，含首年运维与专家上门支持。
               </span>
@@ -155,13 +155,13 @@ const Deploy: React.FC = () => {
           </div>
 
           <img
-            src="/card/deploy/私有化一体机交付-宣传图.svg"
+            src="./card/deploy/私有化一体机交付-宣传图.svg"
             className="absolute bottom-0 right-0"
             alt=""
           />
 
           <img
-            src="/card/deploy/私有化一体机交付-官方推荐.svg"
+            src="./card/deploy/私有化一体机交付-官方推荐.svg"
             className="absolute top-px right-px"
             alt=""
           />
@@ -173,14 +173,14 @@ const Deploy: React.FC = () => {
         >
           <img
             className="w-full h-full absolute top-0 left-0"
-            src="/card/deploy/平台云托管-背景图片.svg"
+            src="./card/deploy/平台云托管-背景图片.svg"
             alt=""
           />
           <div className="flex gap-2.5 relative z-1">
             <div>
               <img
                 className="w-9.75 h-9.75"
-                src="/card/deploy/平台云托管-图标.svg"
+                src="./card/deploy/平台云托管-图标.svg"
                 alt="图标"
               />
             </div>
@@ -195,8 +195,8 @@ const Deploy: React.FC = () => {
             <div className="shrink-0 flex items-center">
               <AnimatedIcon
                 selected={selectedEnvironment === 'staging'}
-                selectedSrc="/card/deploy/平台云托管-选中效果.svg"
-                unselectedSrc="/card/deploy/平台云托管-未选中效果.svg"
+                selectedSrc="./card/deploy/平台云托管-选中效果.svg"
+                unselectedSrc="./card/deploy/平台云托管-未选中效果.svg"
                 selectedClassName="w-6.5 h-6.5"
                 unselectedClassName="w-4.5 h-4.5"
               />
@@ -218,7 +218,7 @@ const Deploy: React.FC = () => {
                   }}
                 >
                 </div>
-                <img src="/card/deploy/平台云托管-分钟级部署.svg" alt="" />
+                <img src="./card/deploy/平台云托管-分钟级部署.svg" alt="" />
                 <span className="text-[12px]">分钟级部署</span>
               </div>
             </div>
@@ -236,7 +236,7 @@ const Deploy: React.FC = () => {
                   }}
                 >
                 </div>
-                <img src="/card/deploy/平台云托管-按量付费.svg" alt="" />
+                <img src="./card/deploy/平台云托管-按量付费.svg" alt="" />
                 <span className="text-[12px]">按量付费</span>
               </div>
             </div>
@@ -254,7 +254,7 @@ const Deploy: React.FC = () => {
                   }}
                 >
                 </div>
-                <img src="/card/deploy/平台云托管-API直连.svg" alt="" />
+                <img src="./card/deploy/平台云托管-API直连.svg" alt="" />
                 <span className="text-[12px]">API直连</span>
               </div>
             </div>

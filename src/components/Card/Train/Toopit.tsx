@@ -15,7 +15,7 @@ const TrainToopit: React.FC<{ message: Message }> = ({ message }) => {
     setIsModalOpen(true)
     setLoading(true)
     console.log(JSON.parse(message.content))
-    fetch('http://localhost:3002/api/v1/model/recommend', {
+    fetch('http://101.35.246.159:3002/api/v1/model/recommend', {
       method: 'GET',
       credentials: 'include',
     }).then(res => res.json()).then((modelRecRes: ModelRecommendResponse) => {
@@ -26,7 +26,7 @@ const TrainToopit: React.FC<{ message: Message }> = ({ message }) => {
   }
 
   const trainEvaluate = () => {
-    fetch('http://localhost:3002/api/v1/train/evaluate', {
+    fetch('http://101.35.246.159:3002/api/v1/train/evaluate', {
       method: 'POST',
       credentials: 'include',
       headers: {
@@ -38,7 +38,7 @@ const TrainToopit: React.FC<{ message: Message }> = ({ message }) => {
   }
 
   const trainModel = (model_id: string) => {
-    fetch('http://localhost:3002/api/v1/train/start', {
+    fetch('http://101.35.246.159:3002/api/v1/train/start', {
       method: 'POST',
       credentials: 'include',
       headers: {

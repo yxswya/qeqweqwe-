@@ -17,7 +17,7 @@ function SwitchSession() {
 
   // 获取会话列表
   useEffect(() => {
-    fetch('http://localhost:3002/api/v1/session/chat', {
+    fetch('http://101.35.246.159:3002/api/v1/session/chat', {
       credentials: 'include',
     })
       .then(res => res.json())

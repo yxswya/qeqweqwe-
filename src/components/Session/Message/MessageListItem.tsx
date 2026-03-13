@@ -46,7 +46,7 @@ const MessageListItem: React.FC<{ message: Message }> = ({ message }) => {
                     className="w-12.5 h-12.5 bg-[#cfddf0] overflow-hidden border border-[#bfdbfe] rounded-xl flex items-center justify-center"
                   >
                     <img
-                      src="/机器人头像.png"
+                      src="./机器人头像.png"
                       alt="avatar"
                       className="w-auto h-8 object-cover rounded-full"
                     />

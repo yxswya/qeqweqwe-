@@ -131,7 +131,7 @@ export const useStore = create<{
       status: 'loading',
     })
 
-    await fetchEventSource(`http://localhost:3002/api/v1/session/chat/${sessionId || ''}`, {
+    await fetchEventSource(`http://101.35.246.159:3002/api/v1/session/chat/${sessionId || ''}`, {
       // 关键配置：设置为 true 以携带 Cookie
       credentials: 'include',
       // 如果是跨域请求，建议明确指定 mode 为 'cors'

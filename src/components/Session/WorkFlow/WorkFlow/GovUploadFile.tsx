@@ -114,7 +114,7 @@ export const GovUploadFile: React.FC = () => {
     }
     formData.append('message_id', '')
     // 使用 @elysiajs/eden 调用上传接口
-    const data = await fetch(`http://localhost:3002/api/v1/governance/${sessionId || ''}`, {
+    const data = await fetch(`http://101.35.246.159:3002/api/v1/governance/${sessionId || ''}`, {
       method: 'POST',
       credentials: 'include',
       body: formData,

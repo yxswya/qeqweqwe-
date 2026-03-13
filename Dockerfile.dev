@@ -6,7 +6,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Set proxy environment variables
-# ENV HTTP_PROXY=http://host.docker.internal:7890  HTTPS_PROXY=http://host.docker.internal:7890   NO_PROXY=localhost,127.0.0.1,backend,postgres,redis
+# ENV HTTP_PROXY=http://101.35.246.159:7890  HTTPS_PROXY=http://101.35.246.159:7890   NO_PROXY=localhost,127.0.0.1,backend,postgres,redis
 # RUN npm config set proxy $HTTP_PROXY  && npm config set https-proxy $HTTPS_PROXY
 
 # Install dependencies

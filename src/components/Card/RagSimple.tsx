@@ -17,7 +17,7 @@ const RagSimple: React.FC<{ message: Message }> = ({ message }) => {
   const inputRef = useRef<HTMLInputElement>(null)
   const [loading, setLoading] = useState(false)
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([])
-  const [logs, setLogs] = useState<string[]>([])
+  // const [logs, setLogs] = useState<string[]>([])
 
   // 监听 ragBuildProgress 变化，更新文件状态
   useEffect(() => {
@@ -41,7 +41,7 @@ const RagSimple: React.FC<{ message: Message }> = ({ message }) => {
     // 更新日志
     if (ragBuildLogs?.logs && ragBuildLogs.logs.length > 0) {
       const timer = setTimeout(() => {
-        setLogs(ragBuildLogs.logs)
+        // setLogs(ragBuildLogs.logs)
       }, 0)
       return () => clearTimeout(timer)
     }
@@ -85,7 +85,7 @@ const RagSimple: React.FC<{ message: Message }> = ({ message }) => {
       }
       setLoading(true)
       // 使用 @elysiajs/eden 调用上传接口
-      const data = await fetch(`http://localhost:3002/api/v1/governance/rag/${sessionId}`, {
+      const data = await fetch(`http://101.35.246.159:3002/api/v1/governance/rag/${sessionId}`, {
         method: 'POST',
         credentials: 'include',
         body: formData,

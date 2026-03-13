@@ -21,7 +21,7 @@ const TrainCore: React.FC = () => {
       formData.append('files', fileArray[i])
     }
 
-    fetch('http://localhost:3002/api/v1/train/start', {
+    fetch('http://101.35.246.159:3002/api/v1/train/start', {
       method: 'POST',
       credentials: 'include',
       body: formData,

@@ -55,7 +55,7 @@ const TopBar: React.FC = () => {
       <div className="flex items-center shrink-0 gap-1">
         <InfinityIcon color="#334bf8" size={38} />
         <img
-          src="/AI要素聚合平台.svg"
+          src="./AI要素聚合平台.svg"
           className="h-full object-contain"
           alt="AI要素聚合平台"
         />

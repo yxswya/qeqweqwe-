@@ -1,5 +1,4 @@
 import type { Success } from '@/api/modules/auth'
-import type { RagBuildResponse } from '@/api/modules/rag'
 import { http } from '@/api'
 
 export interface BaseChatResponse {
