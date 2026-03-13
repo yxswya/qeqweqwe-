@@ -54,6 +54,7 @@ function formatTime(dateString: string): string {
 
 // 单个文件卡片组件
 const FileCard: React.FC<{ file: FileResponse }> = ({ file }) => {
+  console.log(file)
   const { icon, color, bg } = getFileIcon(file.fileName)
 
   return (
@@ -90,7 +91,7 @@ const FileCard: React.FC<{ file: FileResponse }> = ({ file }) => {
 
 export const GovUploadFile: React.FC = () => {
   const inputRef = useRef<HTMLInputElement>(null)
-  const { sessionId, files } = useStore()
+  const { sessionId, files, setStatus } = useStore()
 
   const handleRagBuild = async () => {
     if (!sessionId) {
@@ -103,10 +104,10 @@ export const GovUploadFile: React.FC = () => {
     }
   }
 
-  const submit = async (files: FileList | null) => {
-    if (!files || files.length === 0)
+  const submit = async (uploadFiles: FileList | null) => {
+    if (!uploadFiles || uploadFiles.length === 0)
       return
-    const fileArray = Array.from(files)
+    const fileArray = [...uploadFiles]
     const formData = new FormData()
     for (let i = 0; i < fileArray.length; i++) {
       formData.append('files', fileArray[i])
@@ -120,6 +121,9 @@ export const GovUploadFile: React.FC = () => {
     }).then(res => res.json())
 
     console.log(data)
+    setStatus({
+      files: [...files, ...data],
+    })
   }
 
   return (

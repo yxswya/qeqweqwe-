@@ -1,5 +1,5 @@
 {
-  "name": "ai-core",
+  "name": "client",
   "type": "module",
   "version": "2.0.0",
   "private": true,
@@ -16,6 +16,8 @@
     "@tailwindcss/vite": "^4.1.18",
     "axios": "1.13.5",
     "elysia": "^1.4.27",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
     "github-markdown-css": "^5.9.0",
     "lucide-react": "^0.575.0",
     "react": "^19.2.0",
@@ -26,14 +28,14 @@
     "zustand": "^5.0.11"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^7.6.1",
+    "@antfu/eslint-config": "^7.7.2",
     "@eslint-react/eslint-plugin": "^2.13.0",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
     "babel-plugin-react-compiler": "^1.0.0",
-    "eslint": "^10.0.2",
+    "eslint": "^10.0.3",
     "globals": "^16.5.0",
     "typescript": "~5.9.3",
     "vite": "npm:rolldown-vite@7.2.5"

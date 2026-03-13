@@ -49,11 +49,11 @@ export type ArtifactType
  * @remarks 用于标记当前对话或任务流程所处的阶段，指导下一步操作
  */
 export type StageType
-  = | 'ready_for_agent_create' // 就绪状态：可以创建新的智能体（所有前置条件已满足）
-    | 'ready_for_workflow_create' // 就绪状态：可以创建新的工作流
-    | 'continue' // 继续状态：流程正常推进，无需额外输入即可执行下一步
-    | 'need_more_info' // 等待状态：缺少必要信息，需要用户补充数据后才能继续
-    | 'none' // 无阶段：初始状态或未定义阶段，通常表示流程尚未开始或已结束
+  = | 'ready_for_agent_create' // 就绪状态：可以创建新的智能体（所有前置条件已满足） [已满足条件，可以调用创建 Agent 的接口]
+    | 'ready_for_workflow_create' // 就绪状态：可以创建新的工作流 [已满足条件，可以调用创建 Workflow 的接口]
+    | 'continue' // 继续状态：流程正常推进，无需额外输入即可执行下一步 [尚未到创建阶段，需要继续后续步骤或补充信息]
+    | 'need_more_info' // 等待状态：缺少必要信息，需要用户补充数据后才能继续 [用户描述不足，建议先向用户追问]
+    | 'none' // 无阶段：初始状态或未定义阶段，通常表示流程尚未开始或已结束 [不涉及 agent/workflow 或与流程图无强关联]
 
 export interface ApiResponseAnswer {
   stage: 'completeness'
@@ -117,30 +117,84 @@ export type Domain
 
 // 方案 A：严格联合（如果业务确保不会出现其他值）
 export type SubIntentStrict
-  = | 'create' | 'update' | 'debug' | 'describe' | 'delete' // agent
-    | 'create' | 'update' | 'run' | 'list' | 'describe' // workflow
-    | 'create_index' | 'update_index' | 'query' | 'evaluate' // rag
-    | 'start' | 'resume' | 'stop' | 'evaluate' // train
-    | 'clean' | 'import' | 'export' | 'inspect' // data
-    | 'pay' | 'invoice' | 'balance' | 'usage' // billing
-    | 'run_script' | 'run_sql' | 'run_shell' // exec
-    | 'query' | 'cancel' | 'create' // orders
-    | 'login' | 'logout' | 'refresh' // auth
-    | 'audit' | 'log_query' // ops
+  = | 'create'
+    | 'update'
+    | 'debug'
+    | 'describe'
+    | 'delete' // agent
+    | 'create'
+    | 'update'
+    | 'run'
+    | 'list'
+    | 'describe' // workflow
+    | 'create_index'
+    | 'update_index'
+    | 'query'
+    | 'evaluate' // rag
+    | 'start'
+    | 'resume'
+    | 'stop'
+    | 'evaluate' // train
+    | 'clean'
+    | 'import'
+    | 'export'
+    | 'inspect' // data
+    | 'pay'
+    | 'invoice'
+    | 'balance'
+    | 'usage' // billing
+    | 'run_script'
+    | 'run_sql'
+    | 'run_shell' // exec
+    | 'query'
+    | 'cancel'
+    | 'create' // orders
+    | 'login'
+    | 'logout'
+    | 'refresh' // auth
+    | 'audit'
+    | 'log_query' // ops
     | 'unknown' // fallback
 
 // 方案 B：宽松类型（推荐，兼顾类型提示与扩展性）
 export type SubIntent
-  = | 'create' | 'update' | 'debug' | 'describe' | 'delete'
-    | 'create' | 'update' | 'run' | 'list' | 'describe'
-    | 'create_index' | 'update_index' | 'query' | 'evaluate'
-    | 'start' | 'resume' | 'stop' | 'evaluate'
-    | 'clean' | 'import' | 'export' | 'inspect'
-    | 'pay' | 'invoice' | 'balance' | 'usage'
-    | 'run_script' | 'run_sql' | 'run_shell'
-    | 'query' | 'cancel' | 'create'
-    | 'login' | 'logout' | 'refresh'
-    | 'audit' | 'log_query'
+  = | 'create'
+    | 'update'
+    | 'debug'
+    | 'describe'
+    | 'delete'
+    | 'create'
+    | 'update'
+    | 'run'
+    | 'list'
+    | 'describe'
+    | 'create_index'
+    | 'update_index'
+    | 'query'
+    | 'evaluate'
+    | 'start'
+    | 'resume'
+    | 'stop'
+    | 'evaluate'
+    | 'clean'
+    | 'import'
+    | 'export'
+    | 'inspect'
+    | 'pay'
+    | 'invoice'
+    | 'balance'
+    | 'usage'
+    | 'run_script'
+    | 'run_sql'
+    | 'run_shell'
+    | 'query'
+    | 'cancel'
+    | 'create'
+    | 'login'
+    | 'logout'
+    | 'refresh'
+    | 'audit'
+    | 'log_query'
     | 'unknown'
   // 允许其他未列出的字符串，同时保留上述字面量提示
     | (string & {})

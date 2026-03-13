@@ -137,7 +137,7 @@ const ProgressDisplay: React.FC<ProgressDisplayProps> = ({ steps, currentStepInd
                   {/* 步骤内容 */}
                   <div className="flex-1 flex items-center justify-between min-w-0">
                     <div className="flex items-center gap-2 min-w-0">
-                      <p className={`text-sm truncate ${isCurrent ? 'font-semibold text-gray-900' : isPast ? 'text-gray-700' : 'text-gray-400'}`}>
+                      <p className={`text-lg truncate ${isCurrent ? 'font-semibold text-gray-900' : isPast ? 'text-gray-700' : 'text-gray-400'}`}>
                         {step.label}
                       </p>
                       {hasSubSteps && (
@@ -159,7 +159,7 @@ const ProgressDisplay: React.FC<ProgressDisplayProps> = ({ steps, currentStepInd
                     {/* 状态标签 */}
                     <span
                       className={`
-                        shrink-0 text-xs
+                        shrink-0 text-base
                         ${isCurrent
                 ? 'text-blue-600 font-medium'
                 : isPast || step.status === 'success'
@@ -190,7 +190,7 @@ const ProgressDisplay: React.FC<ProgressDisplayProps> = ({ steps, currentStepInd
                       return (
                         <div
                           key={subStep.id}
-                          className="flex items-center gap-3 py-1.5 fade-in-up"
+                          className="flex items-start gap-3 py-1.5 fade-in-up"
                           style={{ animationDelay: `${subIndex * 50}ms` }}
                         >
                           {/* 子步骤节点 */}
@@ -222,11 +222,11 @@ const ProgressDisplay: React.FC<ProgressDisplayProps> = ({ steps, currentStepInd
 
                           {/* 子步骤内容 */}
                           <div className="flex-1 flex items-center justify-between min-w-0">
-                            <p className={`text-xs truncate ${subIsCurrent ? 'font-medium text-gray-800' : subIsPast ? 'text-gray-600' : 'text-gray-400'}`}>
+                            <p className={`text-base ${subIsCurrent ? 'font-medium text-gray-800' : subIsPast ? 'text-gray-600' : 'text-gray-400'}`}>
                               {subStep.label}
                             </p>
                             {subStep.error && (
-                              <span className="shrink-0 text-xs text-red-500 ml-2">{subStep.error}</span>
+                              <span className="shrink-0 text-base text-red-500 ml-2">{subStep.error}</span>
                             )}
                           </div>
                         </div>

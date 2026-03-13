@@ -1,12 +1,12 @@
-import type { ActionType, ApiResponse } from '@/components/Session/types'
-import type { Message } from '@/components/Session/types'
+import type { ActionType, ApiResponse, Message } from '@/components/Session/types'
 import * as React from 'react'
+import { ComputeEstimateSummary } from '@/components/Card/Agent/Create'
 import Loading from '@/components/Card/Loading.tsx'
 import RagSimple from '@/components/Card/RagSimple'
 import Text from '@/components/Card/Text.tsx'
 import TrainToopit from '@/components/Card/Train/Toopit'
-import { isBot } from '@/components/Session/utils/common.ts'
 import { hasAnswer } from '@/components/Session/types'
+import { isBot } from '@/components/Session/utils/common.ts'
 
 const MessageListItem: React.FC<{ message: Message }> = ({ message }) => {
   const isUser = message.senderId !== 'system-bot-id'
@@ -60,7 +60,7 @@ const MessageListItem: React.FC<{ message: Message }> = ({ message }) => {
         >
           <div
             className={
-              `mb-2 max-w-[70%] ${
+              `mb-2 overflow-hidden max-w-[70%] ${
                 message.senderId !== 'system-bot-id'
                   ? 'origin-bottom-right rounded-s-2xl rounded-b-2xl bg-[#2563EB] text-white'
                   : 'origin-bottom-left rounded-2xl bg-white'
@@ -99,6 +99,19 @@ export function renderMessageListItem(message: Message) {
     return <Text content={message.content} />
   }
 
+  const mockData = {
+    workload_level: 'small',
+    gpu_type: 'CPU-only',
+    gpu_count: 0,
+    gpu_memory_gb: 0,
+    cpu_cores: 4,
+    ram_gb: 8,
+    estimated_hours: 2,
+    cost_sensitivity: 'medium',
+    rationale: '需求为基于单一法规文档（约数万字）构建RAG智能客服助手，用于对外服务。知识库规模小，对响应速度要求中等，但强调“效果最好”和“语气专业”，需使用质量较高的嵌入模型和7B左右参数量的对话模型。初期并发量低，无需高性能GPU实时推理，可采用CPU进行向量检索及轻量模型推理，或云端API调用。开发调试为主要耗时。',
+    confidence: 0.8,
+  }
+
   if (message.type === 'json') {
     const content = parseContent(message.content) as ApiResponse
 
@@ -107,9 +120,8 @@ export function renderMessageListItem(message: Message) {
     }
     else {
       return (
-        <div>
+        <div className="w-full">
           <Text content={content.workflow_hint.reason} />
-          <Actions actions={content.intent.actions} />
 
           {
             content.intent.actions.includes('ASK_MORE_INFO')
@@ -118,6 +130,17 @@ export function renderMessageListItem(message: Message) {
               <TrainToopit message={message} />
             )
           }
+
+          {
+            content.intent.actions.includes('AGENT_CREATE')
+            && content.workflow_hint.stage === 'ready_for_agent_create'
+            && (
+              <>
+                <ComputeEstimateSummary data={mockData} />
+              </>
+            )
+          }
+          <Actions actions={content.intent.actions} />
         </div>
       )
     }
@@ -136,7 +159,7 @@ function parseContent<T>(content: string) {
 }
 
 const actionsMap: Record<ActionType, string> = {
-  AGENT_CREATE: '创建智能体（未实现）',
+  AGENT_CREATE: '已经成功创建智能体',
   AGENT_UPDATE: '更新智能体',
   WORKFLOW_CREATE: '工作流创建',
   WORKFLOW_RUN: '运行工作流',

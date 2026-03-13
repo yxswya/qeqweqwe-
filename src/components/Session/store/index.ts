@@ -1,6 +1,6 @@
 import type { FileResponse, MessageResponse } from '../utils/elysia'
-import type { ActionType, ApiResponse, ClarificationQuestion } from '@/components/Session/types'
-import type { Message } from '@/components/Session/types'
+import type { ActionType, ApiResponse, ClarificationQuestion, Message } from '@/components/Session/types'
+
 import { fetchEventSource } from '@microsoft/fetch-event-source'
 import { create } from 'zustand'
 import { hasAnswer } from '@/components/Session/types'
@@ -36,6 +36,7 @@ export const useStore = create<{
   getMessages: () => Promise<void>
   clearSession: () => void
   setStatus: (obj: Partial<{
+    files: FileResponse[]
     actions: ActionType[]
     sessionId: string
     messages: Message[]
@@ -111,17 +112,17 @@ export const useStore = create<{
   async getMessages() {
     const { sessionId, setSessionStatus } = get()
     const response = await getSessionMessages(sessionId)
-    console.log(response)
 
     if (!response)
       return
 
     const { messages, files } = response
+    console.log(messages)
     set({
       messages: [...messages],
       files: [...files],
     })
-    setSessionStatus(messages[messages.length - 1])
+    setSessionStatus(messages.at(-1)!)
   },
 
   async fetchMessage(text) {
@@ -148,7 +149,7 @@ export const useStore = create<{
       onmessage(ev) {
         // ev.event 对应你后端的 event 字段
         // ev.data  对应你后端的 data 字段（字符串形式）
-        console.log(ev)
+        console.log(ev.data)
 
         if (ev.event === 'status' || ev.event === 'heartbeat') {
           // 解析去掉双引号
@@ -181,12 +182,11 @@ export const useStore = create<{
   },
   setSessionStatus(data: MessageResponse) {
     const { setStatus } = get()
+    const sessionId = data.sessionId
     if (data.type === 'json') {
       const content = JSON.parse(data.content) as ApiResponse
-      const sessionId = hasAnswer(content) ? content.answer.session_id : content.completeness.session_id
-      console.log('sessionId', sessionId)
+      // const sessionId = hasAnswer(content) ? content.answer.session_id : content.completeness.session_id
       if (hasAnswer(content)) {
-        console.log(content.answer.clarification_questions)
         if (content.answer.clarification_questions.length > 0) {
           setStatus({
             sessionId,
@@ -196,8 +196,8 @@ export const useStore = create<{
         }
       }
       else {
-        console.log(content.intent.actions)
-        if (content.intent.actions.includes('ASK_MORE_INFO')) {
+        console.log(content.intent.actions.join('/'), '/', content.workflow_hint.stage)
+        if (content.intent.actions.includes('ASK_MORE_INFO') || content.workflow_hint.stage) {
           setStatus({
             sessionId,
             status: 'input',
@@ -207,6 +207,7 @@ export const useStore = create<{
         }
         else {
           setStatus({
+            sessionId,
             actions: content.intent.actions,
           })
         }
@@ -214,6 +215,7 @@ export const useStore = create<{
     }
     else {
       setStatus({
+        sessionId,
         status: 'none',
         clarificationQuestions: [],
       })

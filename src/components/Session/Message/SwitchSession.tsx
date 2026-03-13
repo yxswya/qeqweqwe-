@@ -22,7 +22,6 @@ function SwitchSession() {
     })
       .then(res => res.json())
       .then((data) => {
-        console.log(data)
         setSessions(data)
       })
   }, [])

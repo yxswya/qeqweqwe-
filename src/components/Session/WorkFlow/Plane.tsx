@@ -1,9 +1,26 @@
 import { Bell, Settings, Workflow } from 'lucide-react'
 import Tabs from '@/components/Tabs'
 import { GovUploadFile } from './WorkFlow/GovUploadFile'
-import ProgressDisplay from './WorkFlow/ProgressDisplay'
+import ProgressDisplay, { type StepItem } from './WorkFlow/ProgressDisplay'
+import { useStore } from '@/components/Session/store'
+import { hasAnswer, type ApiResponse } from '../types'
 
 function Plane() {
+  const messages = useStore(state => state.messages)
+  const datas: StepItem[] = messages.filter(msg => msg.senderId === 'system-bot-id').map(msg => {
+    if (msg.type === 'json') {
+      const content = JSON.parse(msg.content) as ApiResponse
+      if (hasAnswer(content)) {
+        return { label: content.answer.normalized_request.ai_summary, id: msg.id, status: 'success' }
+      } else {
+        return { label: content.workflow_hint.reason, id: msg.id, status: 'success' }
+      }
+    } else {
+      return { label: '意图识别中...', id: msg.id, status: 'failed' }
+    }
+  })
+  console.log(datas)
+
   const tabs = [
     {
       id: 'profile',
@@ -15,17 +32,13 @@ function Plane() {
             steps={[
               {
                 id: '1',
-                label: '意图识别',
+                label: '核心需求分析',
                 status: 'success',
-                subSteps: [
-                  { id: '1-1', label: '解析用户输入', status: 'success' },
-                  { id: '1-2', label: '匹配意图模板', status: 'success' },
-                  { id: '1-3', label: '置信度计算', status: 'success' },
-                ],
+                subSteps: datas,
               },
               {
                 id: '2',
-                label: '提取关键信息',
+                label: '资源智能补齐',
                 status: 'running',
                 subSteps: [
                   { id: '2-1', label: '实体识别', status: 'success' },
@@ -35,7 +48,7 @@ function Plane() {
               },
               {
                 id: '3',
-                label: '构建知识库',
+                label: '工作流搭建与执行',
                 status: 'pending',
                 subSteps: [
                   { id: '3-1', label: '向量化处理', status: 'pending' },
