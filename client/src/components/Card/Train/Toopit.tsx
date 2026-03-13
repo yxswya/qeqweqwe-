@@ -1,5 +1,5 @@
 import type * as React from 'react'
-import type { ModelRecommendResponse } from '@/components/Session/model'
+import type { ModelRecommendResponse } from '@/components/Session/types/model.ts'
 import type { Message } from '@/components/Session/types'
 import { Loader2Icon } from 'lucide-react'
 import { useState } from 'react'

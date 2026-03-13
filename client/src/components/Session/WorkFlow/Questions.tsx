@@ -43,7 +43,7 @@ export const WorkFlowQuestions: React.FC = () => {
       .filter(Boolean)
       .join('；')
 
-    fetchMessage(answers)
+    fetchMessage(answers).catch(console.error)
     // 清空选择
     setSelectedOptions({})
     setCurrentIndex(0)

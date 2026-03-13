@@ -21,7 +21,7 @@ function Input() {
     // Ctrl + Enter 或 Cmd + Enter 发送
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault()
-      handleSend()
+      handleSend().catch(console.error)
     }
   }
 
@@ -31,7 +31,7 @@ function Input() {
   const isOverLimit = charCount > maxChars
 
   return (
-    <div className="bg-white rounded-xl border-1 border-gray-200 shadow-sm overflow-hidden shrink-0">
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden shrink-0">
       {/* 输入区域 */}
       <div className="p-4">
         <textarea

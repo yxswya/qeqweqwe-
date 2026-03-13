@@ -1,4 +1,3 @@
-import type { Message } from './types'
 import * as React from 'react'
 
 import { useEffect, useRef } from 'react'
@@ -6,14 +5,6 @@ import { useParams } from 'react-router'
 import MessageList from '@/components/Session/Message/MessageList.tsx'
 import { useStore } from '@/components/Session/store'
 import WorkFlow from '@/components/Session/WorkFlow/index.tsx'
-
-export interface SSENormalMessage {
-  type: 'NEW_BOT_MESSAGE' | 'UPDATE_BOT_MESSAGE'
-  data: {
-    id: string
-    content: Message
-  }
-}
 
 const Conversation: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null)

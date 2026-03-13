@@ -1,3 +1,7 @@
+import type { MessageResponse } from '../utils/elysia.ts'
+
+export type Message = MessageResponse
+
 export interface Option {
   value: string
   label: string

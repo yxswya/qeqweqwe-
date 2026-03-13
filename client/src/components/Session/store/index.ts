@@ -1,9 +1,9 @@
 import type { FileResponse, MessageResponse } from '../utils/elysia'
-import type { Message } from '@/components/Session/types.ts'
-import type { ActionType, ApiResponse, ApiResponseIntent, ClarificationQuestion } from '@/components/WorkFlow/types'
+import type { ActionType, ApiResponse, ClarificationQuestion } from '@/components/Session/types'
+import type { Message } from '@/components/Session/types'
 import { fetchEventSource } from '@microsoft/fetch-event-source'
 import { create } from 'zustand'
-import { hasAnswer } from '@/components/WorkFlow/types'
+import { hasAnswer } from '@/components/Session/types'
 import { getSessionMessages } from '../utils/elysia'
 
 // RAG 构建进度状态
@@ -18,14 +18,6 @@ export interface RagBuildProgress {
 export interface RagBuildLogs {
   job_id: string
   logs: string[]
-}
-
-export interface SSENormalMessage {
-  type: 'NEW_BOT_MESSAGE' | 'UPDATE_BOT_MESSAGE'
-  data: {
-    id: string
-    content: Message
-  }
 }
 
 export const useStore = create<{
@@ -43,7 +35,6 @@ export const useStore = create<{
   initConversation: (sessionId: string | undefined) => void
   getMessages: () => Promise<void>
   clearSession: () => void
-  fetchRagBuild: () => Promise<void>
   setStatus: (obj: Partial<{
     actions: ActionType[]
     sessionId: string
@@ -104,7 +95,7 @@ export const useStore = create<{
     set(obj)
   },
   initConversation(sessionId) {
-    const { fetchRagBuild, getMessages, clearSession } = get()
+    const { getMessages, clearSession } = get()
     if (!sessionId) {
       clearSession()
       return
@@ -114,7 +105,6 @@ export const useStore = create<{
       sessionId,
     })
 
-    fetchRagBuild().catch(console.error)
     getMessages().catch(console.error)
   },
 
@@ -132,10 +122,6 @@ export const useStore = create<{
       files: [...files],
     })
     setSessionStatus(messages[messages.length - 1])
-  },
-
-  async fetchRagBuild() {
-
   },
 
   async fetchMessage(text) {

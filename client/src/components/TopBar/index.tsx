@@ -14,7 +14,7 @@ import * as React from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { Form, Link, useRouteLoaderData } from 'react-router'
 
-import SwitchSession from '@/components/Session/SwitchSession'
+import SwitchSession from '@/components/Session/Message/SwitchSession.tsx'
 
 // loader 返回类型
 export interface AppLoaderData {

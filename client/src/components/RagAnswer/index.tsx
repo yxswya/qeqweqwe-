@@ -1,4 +1,4 @@
-import type { RagAnswerResponse } from '../Session/rag'
+import type { RagAnswerResponse } from '../Session/types/rag.ts'
 import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router'
 import './style.css'

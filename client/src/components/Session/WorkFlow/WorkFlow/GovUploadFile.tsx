@@ -59,7 +59,7 @@ const FileCard: React.FC<{ file: FileResponse }> = ({ file }) => {
   return (
     <div className="group relative flex items-center gap-3 p-3 bg-white rounded-xl border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all duration-200 cursor-pointer">
       {/* 文件图标 */}
-      <div className={`w-10 h-10 rounded-lg ${bg} ${color} flex items-center justify-center flex-shrink-0`}>
+      <div className={`w-10 h-10 rounded-lg ${bg} ${color} flex items-center justify-center shrink-0`}>
         {icon}
       </div>
 

@@ -1,5 +1,5 @@
 import type * as React from 'react'
-import type { Message } from '@/components/Session/types.ts'
+import type { Message } from '@/components/Session/types'
 // import { fetchEventSource } from '@microsoft/fetch-event-source'
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router'

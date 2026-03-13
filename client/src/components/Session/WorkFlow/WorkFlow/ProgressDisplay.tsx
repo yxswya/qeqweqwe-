@@ -88,7 +88,7 @@ const ProgressDisplay: React.FC<ProgressDisplayProps> = ({ steps, currentStepInd
 
         {/* 进度填充线 - 渐变 */}
         <div
-          className="absolute left-7 top-4 w-0.5 bg-gradient-to-b from-emerald-400 via-blue-400 to-blue-400 rounded-full progress-grow origin-top transition-all duration-500 ease-out"
+          className="absolute left-7 top-4 w-0.5 bg-linear-to-b from-emerald-400 via-blue-400 to-blue-400 rounded-full progress-grow origin-top transition-all duration-500 ease-out"
           style={{ height: `${getProgressHeight()}%` }}
         />
 

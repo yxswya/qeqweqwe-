@@ -1,12 +1,12 @@
-import type { Message } from '@/components/Session/types.ts'
-import type { ActionType, ApiResponse } from '@/components/WorkFlow/types.ts'
+import type { ActionType, ApiResponse } from '@/components/Session/types'
+import type { Message } from '@/components/Session/types'
 import * as React from 'react'
 import Loading from '@/components/Card/Loading.tsx'
 import RagSimple from '@/components/Card/RagSimple'
 import Text from '@/components/Card/Text.tsx'
 import TrainToopit from '@/components/Card/Train/Toopit'
-import { isBot } from '@/components/Session/common.ts'
-import { hasAnswer } from '@/components/WorkFlow/types.ts'
+import { isBot } from '@/components/Session/utils/common.ts'
+import { hasAnswer } from '@/components/Session/types'
 
 const MessageListItem: React.FC<{ message: Message }> = ({ message }) => {
   const isUser = message.senderId !== 'system-bot-id'

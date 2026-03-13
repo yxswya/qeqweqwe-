@@ -1,4 +1,4 @@
-import type { Message } from '@/components/Chat/types.ts'
+import type { Message } from '@/components/Chat/index.ts'
 
 export interface Raw {
   content: string

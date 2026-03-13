@@ -4,7 +4,7 @@ import type {
   UploadStage,
 } from './types.ts'
 import type { RagBuildResponse } from '@/api/modules/rag'
-import type { Message } from '@/components/Chat/types.ts'
+import type { Message } from '@/components/Chat/index.ts'
 import * as React from 'react'
 import { ragApi } from '@/api/modules/rag'
 import { transform } from '@/components/Chat/utils/transform.ts'
