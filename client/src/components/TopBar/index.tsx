@@ -14,8 +14,7 @@ import * as React from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { Form, Link, useRouteLoaderData } from 'react-router'
 
-import DevRouter from '@/components/Dev/router'
-import { env } from '@/config/env'
+import SwitchSession from '@/components/Session/SwitchSession'
 
 // loader 返回类型
 export interface AppLoaderData {
@@ -61,9 +60,9 @@ const TopBar: React.FC = () => {
           alt="AI要素聚合平台"
         />
       </div>
-      {env.isDev && (
-        <DevRouter />
-      )}
+      <div>
+        <SwitchSession />
+      </div>
 
       <div className="flex gap-3 items-center h-full">
         {/* 用户菜单触发器 */}

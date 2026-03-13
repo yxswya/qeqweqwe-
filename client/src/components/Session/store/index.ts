@@ -1,6 +1,6 @@
 import type { FileResponse, MessageResponse } from '../utils/elysia'
 import type { Message } from '@/components/Session/types.ts'
-import type { ApiResponse, ClarificationQuestion } from '@/components/WorkFlow/types'
+import type { ActionType, ApiResponse, ApiResponseIntent, ClarificationQuestion } from '@/components/WorkFlow/types'
 import { fetchEventSource } from '@microsoft/fetch-event-source'
 import { create } from 'zustand'
 import { hasAnswer } from '@/components/WorkFlow/types'
@@ -31,6 +31,7 @@ export interface SSENormalMessage {
 export const useStore = create<{
   sessionId: string
   status: 'loading' | 'input' | 'none' | 'questions' // 当前操作状态
+  actions: ActionType[]
 
   messages: Message[]
   files: FileResponse[]
@@ -41,10 +42,10 @@ export const useStore = create<{
   fetchMessage: (text: string) => Promise<void>
   initConversation: (sessionId: string | undefined) => void
   getMessages: () => Promise<void>
-  createSession: () => Promise<string>
   clearSession: () => void
   fetchRagBuild: () => Promise<void>
   setStatus: (obj: Partial<{
+    actions: ActionType[]
     sessionId: string
     messages: Message[]
     status: 'loading' | 'input' | 'none' | 'questions' // 当前操作状态
@@ -55,10 +56,11 @@ export const useStore = create<{
   statusText: string
   setStatusText: (text: string) => void
   parseContent: (content: string) => void
+  setSessionStatus: (data: MessageResponse) => void
 }>((set, get) => ({
   sessionId: '',
   status: 'input',
-
+  actions: [],
   messages: [],
   files: [],
   clarificationQuestions: [],
@@ -116,27 +118,8 @@ export const useStore = create<{
     getMessages().catch(console.error)
   },
 
-  async createSession() {
-    // const response = await fetch('http://localhost:3000/api/conversations', {
-    //   method: 'POST',
-    //   credentials: 'include',
-    //   headers: {
-    //     'Content-Type': 'application/json',
-    //   },
-    //   body: JSON.stringify({ participantIds: [], title: `会话${Date.now()}` }),
-    // })
-    //   .then(res => res.json())
-
-    // const { conversationId } = response.data
-    // set({
-    //   sessionId: conversationId,
-    // })
-
-    // return conversationId
-  },
-
   async getMessages() {
-    const { sessionId } = get()
+    const { sessionId, setSessionStatus } = get()
     const response = await getSessionMessages(sessionId)
     console.log(response)
 
@@ -144,30 +127,15 @@ export const useStore = create<{
       return
 
     const { messages, files } = response
-
     set({
       messages: [...messages],
       files: [...files],
     })
+    setSessionStatus(messages[messages.length - 1])
   },
 
   async fetchRagBuild() {
-    // const { sessionId } = get()
-    // if (!sessionId)
-    //   return
 
-    // const { data } = await fetch(`http://localhost:3000/api/conversations/${sessionId}/rag/builds`, {
-    //   method: 'GET',
-    //   credentials: 'include', // 关键设置
-    //   headers: {
-    //     'Content-Type': 'application/json',
-    //   },
-    // })
-    //   .then(res => res.json())
-
-    // set({
-    //   ragBuild: data,
-    // })
   },
 
   async fetchMessage(text) {
@@ -225,12 +193,8 @@ export const useStore = create<{
       },
     })
   },
-
-  parseContent(response: string) {
-    const { setStatus, addMessage } = get()
-    const data = JSON.parse(response) as MessageResponse
-    console.log(data)
-
+  setSessionStatus(data: MessageResponse) {
+    const { setStatus } = get()
     if (data.type === 'json') {
       const content = JSON.parse(data.content) as ApiResponse
       const sessionId = hasAnswer(content) ? content.answer.session_id : content.completeness.session_id
@@ -252,6 +216,12 @@ export const useStore = create<{
             sessionId,
             status: 'input',
             clarificationQuestions: [],
+            actions: content.intent.actions,
+          })
+        }
+        else {
+          setStatus({
+            actions: content.intent.actions,
           })
         }
       }
@@ -262,6 +232,12 @@ export const useStore = create<{
         clarificationQuestions: [],
       })
     }
+  },
+  parseContent(response: string) {
+    const { setSessionStatus, addMessage } = get()
+    const data = JSON.parse(response) as MessageResponse
+    setSessionStatus(data)
+
     addMessage(data)
   },
 }))

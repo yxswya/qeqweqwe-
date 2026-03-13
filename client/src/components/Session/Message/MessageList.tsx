@@ -1,4 +1,4 @@
-import React from 'react'
+import * as React from 'react'
 import MessageListItem from '@/components/Session/Message/MessageListItem.tsx'
 import useStore from '@/components/Session/store'
 
