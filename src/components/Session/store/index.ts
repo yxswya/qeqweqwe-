@@ -3,6 +3,7 @@ import type { ActionType, ApiResponse, ClarificationQuestion, Message } from '@/
 
 import { fetchEventSource } from '@microsoft/fetch-event-source'
 import { create } from 'zustand'
+import { getAccessToken } from '@/auth'
 import { hasAnswer, hasIntent } from '@/components/Session/types'
 import { getSessionMessages } from '../utils/elysia'
 
@@ -147,6 +148,7 @@ export const useStore = create<{
           headers: {
             'Content-Type': 'application/json',
             'Cache-Control': 'no-cache',
+            'Authorization': `Bearer ${getAccessToken()}`,
           },
           signal: controller.signal,
 

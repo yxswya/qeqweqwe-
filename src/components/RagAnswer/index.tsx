@@ -1,6 +1,7 @@
 import type { RagAnswerResponse } from '../Session/types/rag.ts'
 import { useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router'
+import { server } from '@/api/modules/session.ts'
 import './style.css'
 
 interface Message {
@@ -79,16 +80,10 @@ function RagAnswer() {
     // 模拟AI回复
     setIsTyping(true)
 
-    fetch(`${import.meta.env.VITE_API_BASE_URL}/rag/chat/${params.id}`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        text: inputValue,
-      }),
-    }).then(res => res.json()).then((data: RagAnswerResponse) => {
+    server.api.v1.rag.chat({ index_version: String(params.id) }).post({
+      text: inputValue,
+    }).then((data: RagAnswerResponse) => {
+      console.log(data)
       const aiMessage: Message = {
         id: Date.now() + 1,
         content: data.answer.text,

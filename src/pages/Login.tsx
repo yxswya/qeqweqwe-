@@ -23,11 +23,11 @@ export function loader({ request }: { request: Request }) {
 export async function action({ request }: { request: Request }) {
   const formData = await request.formData()
   const params: LoginParams = {
-    email: String(formData.get('email') || '').trim(),
+    username: String(formData.get('username') || '').trim(),
     password: String(formData.get('password') || '').trim(),
   }
 
-  if (!params.email || !params.password) {
+  if (!params.username || !params.password) {
     return { error: '请输入用户名和密码' }
   }
 
@@ -65,13 +65,13 @@ export default function LoginPage() {
       )}
       <Form method="post" style={{ display: 'grid', gap: 8, maxWidth: 240 }}>
         <input
-          name="email"
-          defaultValue="demander@example.com"
-          placeholder="email"
+          name="username"
+          defaultValue="yxswy"
+          placeholder="username"
         />
         <input
           name="password"
-          defaultValue="Demander123!"
+          defaultValue="18267094443"
           placeholder="password"
           type="password"
         />

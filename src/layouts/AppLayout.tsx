@@ -1,6 +1,6 @@
 import { Outlet } from 'react-router'
 
-// import { authApi } from '@/api'
+import { authApi } from '@/api'
 import { requireAuth } from '@/auth'
 import SideBar from '@/components/SideBar'
 import TopBar from '@/components/TopBar'
@@ -10,9 +10,9 @@ export async function appLoader({ request }: { request: Request }) {
   requireAuth(request) // 未登录会 redirect
 
   // 获取用户信息（每次进入 /app 时）
-  // const user = (await authApi.getCurrentUser()).data
+  const user = (await authApi.getCurrentUser()).data
 
-  return { user: {} }
+  return { user }
 }
 
 export default function AppLayout() {

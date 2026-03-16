@@ -7,7 +7,7 @@ export interface Success<T> {
 }
 
 export interface LoginParams {
-  email: string
+  username: string
   password: string
 }
 
@@ -20,7 +20,6 @@ export interface LoginResult {
 
 export interface UserInfo {
   username: string
-  email: string
   phone: null
   role: string
   id: string

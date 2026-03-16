@@ -1,11 +1,12 @@
 import { Check, ChevronDown } from 'lucide-react'
-
 import { useEffect, useRef, useState } from 'react'
+
 import { useNavigate, useParams } from 'react-router'
+import { server } from '@/api/modules/session'
 
 interface Session {
   id: string
-  title: string
+  title: string | null
 }
 
 function SwitchSession() {
@@ -17,12 +18,9 @@ function SwitchSession() {
 
   // 获取会话列表
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_BASE_URL}/session/chat`, {
-      credentials: 'include',
-    })
-      .then(res => res.json())
+    server.api.v1.session.chat.get()
       .then((data) => {
-        setSessions(data)
+        setSessions(data.data || [])
       })
   }, [])
 

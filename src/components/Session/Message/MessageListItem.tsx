@@ -99,18 +99,18 @@ export function renderMessageListItem(message: Message) {
     return <Text content={message.content} />
   }
 
-  const mockData = {
-    workload_level: 'small',
-    gpu_type: 'CPU-only',
-    gpu_count: 0,
-    gpu_memory_gb: 0,
-    cpu_cores: 4,
-    ram_gb: 8,
-    estimated_hours: 2,
-    cost_sensitivity: 'medium',
-    rationale: '需求为基于单一法规文档（约数万字）构建RAG智能客服助手，用于对外服务。知识库规模小，对响应速度要求中等，但强调“效果最好”和“语气专业”，需使用质量较高的嵌入模型和7B左右参数量的对话模型。初期并发量低，无需高性能GPU实时推理，可采用CPU进行向量检索及轻量模型推理，或云端API调用。开发调试为主要耗时。',
-    confidence: 0.8,
-  }
+  // const mockData = {
+  //   workload_level: 'small',
+  //   gpu_type: 'CPU-only',
+  //   gpu_count: 0,
+  //   gpu_memory_gb: 0,
+  //   cpu_cores: 4,
+  //   ram_gb: 8,
+  //   estimated_hours: 2,
+  //   cost_sensitivity: 'medium',
+  //   rationale: '需求为基于单一法规文档（约数万字）构建RAG智能客服助手，用于对外服务。知识库规模小，对响应速度要求中等，但强调“效果最好”和“语气专业”，需使用质量较高的嵌入模型和7B左右参数量的对话模型。初期并发量低，无需高性能GPU实时推理，可采用CPU进行向量检索及轻量模型推理，或云端API调用。开发调试为主要耗时。',
+  //   confidence: 0.8,
+  // }
 
   if (message.type === 'json') {
     const content = parseContent(message.content) as ApiResponse
@@ -131,7 +131,7 @@ export function renderMessageListItem(message: Message) {
             )
           }
 
-          {
+          {/* {
             content.intent.actions.includes('AGENT_CREATE')
             && content.workflow_hint.stage === 'ready_for_agent_create'
             && (
@@ -139,7 +139,7 @@ export function renderMessageListItem(message: Message) {
                 <ComputeEstimateSummary data={mockData} />
               </>
             )
-          }
+          } */}
 
           {
             content.intent.actions.includes('RAG_BUILD_INDEX')
@@ -202,46 +202,8 @@ function parseContent<T>(content: string) {
     return JSON.parse(content) as T
   }
   catch {
-    console.error('数据解析异常', content)
     return {}
   }
-}
-
-const actionsMap: Record<ActionType, string> = {
-  AGENT_CREATE: '创建智能体',
-  AGENT_UPDATE: '更新智能体',
-  WORKFLOW_CREATE: '工作流创建',
-  WORKFLOW_RUN: '运行工作流',
-  RAG_BUILD_INDEX: '构建知识库索引',
-  RAG_QUERY: '知识库查询',
-  TRAIN_START: '开始训练',
-  DATA_CLEAN: '数据治理',
-  DATA_IMPORT: '数据导入',
-  ASK_MORE_INFO: '提供更多...',
-}
-
-function Actions({ actions }: { actions: ActionType[] }) {
-  const acs = actions.filter((el) => {
-    return !['ASK_MORE_INFO'].includes(el)
-  })
-
-  if (acs.length === 0) {
-    return <></>
-  }
-
-  return (
-    <div className="px-5 pb-3 wrap-break-word w-auto text-[18px] min-h-12.5 flex justify-end items-center">
-      {
-        acs.map((el) => {
-          return (
-            <span key={el} className="underline text-blue-600 font-bold cursor-pointer">
-              {actionsMap[el]}
-            </span>
-          )
-        })
-      }
-    </div>
-  )
 }
 
 export default MessageListItem

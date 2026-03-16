@@ -1,22 +1,10 @@
-import type { ChatResponse } from '@/api/modules'
-import { http } from '@/api'
+import type { App } from '../../../../server/src/index.ts'
+import { treaty } from '@elysiajs/eden'
+import { getAccessToken } from '@/auth.ts'
 
-export interface SuccessList<T> {
-  code: number
-  items: T
-  message: string
-  page: number
-  page_size: number
-  total: number
-  total_pages: number
-}
-
-export const sessionApi = {
-  async createSession() {},
-  async getSession(id: string, params: { page: number, page_size: number }) {
-    return await http.get<SuccessList<ChatResponse[]>>(
-      `/chat/sessions/${id}/messages`,
-      params,
-    )
+// @ts-ignore
+export const server = treaty<App>('localhost:3002', {
+  headers: {
+    Authorization: `Bearer ${getAccessToken()}`,
   },
-}
+})

@@ -1,3 +1,5 @@
+import { server } from '@/api/modules/session'
+
 export interface Rag {
   id: string
   sessionId: string
@@ -22,10 +24,10 @@ export interface MessageResponse {
 export interface FileResponse {
   id: string
   sessionId: string
-  messageId: string
+  messageId: string | null
   fileName: string
   fileUrl: string
-  createdAt: string
+  createdAt: Date
 }
 
 export interface SessionResponse {
@@ -42,12 +44,6 @@ export async function getSessionMessages(sessionId: string): Promise<SessionResp
   if (!sessionId)
     return
 
-  return await fetch(
-    `${import.meta.env.VITE_API_BASE_URL}/session/chat/${sessionId}`,
-    {
-      method: 'GET',
-      credentials: 'include',
-    },
-  )
-    .then(res => res.json())
+  // @ts-ignore
+  return (await server.api.v1.session.chat({ sessionId }).get()).data
 }

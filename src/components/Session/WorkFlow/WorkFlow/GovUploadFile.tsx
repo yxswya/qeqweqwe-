@@ -5,6 +5,7 @@ import type { FileResponse } from '../../utils/elysia'
 import { Archive, File, FileText, Image, Table, Trash2, Upload } from 'lucide-react'
 import { useRef } from 'react'
 
+import { server } from '@/api/modules/session'
 import { useStore } from '@/components/Session/store'
 
 // 文件类型图标映射
@@ -104,20 +105,14 @@ export const GovUploadFile: React.FC = () => {
     if (!uploadFiles || uploadFiles.length === 0)
       return
     const fileArray = [...uploadFiles]
-    const formData = new FormData()
-    for (let i = 0; i < fileArray.length; i++) {
-      formData.append('files', fileArray[i])
-    }
-    formData.append('message_id', '')
-    // 使用 @elysiajs/eden 调用上传接口
-    const data = await fetch(`${import.meta.env.VITE_API_BASE_URL}/governance/${sessionId || ''}`, {
-      method: 'POST',
-      credentials: 'include',
-      body: formData,
-    }).then(res => res.json())
+
+    const data = await server.api.v1.governance({ sessionId }).post({
+      files: fileArray,
+      message_id: '',
+    })
 
     setStatus({
-      files: [...files, ...data],
+      files: [...files, ...(data.data || [])],
     })
   }
 

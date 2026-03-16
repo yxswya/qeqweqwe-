@@ -64,6 +64,7 @@ request.interceptors.request.use(
 // ========== 响应拦截器：统一处理错误 ==========
 request.interceptors.response.use(
   (response: AxiosResponse) => {
+    console.log('response.data', response.data)
     const { code } = response.data
 
     // 检查业务错误码：4001 → Token 过期

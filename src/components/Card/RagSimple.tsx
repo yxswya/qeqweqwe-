@@ -3,6 +3,7 @@ import type { Message } from '@/components/Session/types'
 import { FileText, Upload, X } from 'lucide-react'
 
 import { useRef, useState } from 'react'
+import { server } from '@/api/modules/session'
 import Model from '@/components/Model'
 import { useStore } from '@/components/Session/store'
 
@@ -45,22 +46,14 @@ const RagSimple: React.FC<{ message: Message }> = ({ message }) => {
     }
 
     try {
-      const formData = new FormData()
-      formData.append('message_id', message.id)
-      for (let i = 0; i < selectedFiles.length; i++) {
-        formData.append('files', selectedFiles[i])
-      }
-      formData.append('title', ragTitle)
-
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/governance/rag/${sessionId}`, {
-        method: 'POST',
-        credentials: 'include',
-        body: formData,
-      })
-
-      if (response.ok) {
+      server.api.v1.governance.rag({ sessionId }).post({
+        title: ragTitle,
+        files: selectedFiles,
+        message_id: message.id,
+      }).then(res => res.data).then((data) => {
+        console.log(data)
         handleCloseModal()
-      }
+      })
     }
     catch (error) {
       console.error('Upload error:', error)
