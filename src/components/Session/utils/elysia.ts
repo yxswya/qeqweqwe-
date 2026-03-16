@@ -43,7 +43,7 @@ export async function getSessionMessages(sessionId: string): Promise<SessionResp
     return
 
   return await fetch(
-    `http://101.35.246.159:3002/api/v1/session/chat/${sessionId}`,
+    `${import.meta.env.VITE_API_BASE_URL}/session/chat/${sessionId}`,
     {
       method: 'GET',
       credentials: 'include',

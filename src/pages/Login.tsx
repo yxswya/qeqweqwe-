@@ -34,7 +34,6 @@ export async function action({ request }: { request: Request }) {
   try {
     // ======== 调用登录 API ========
     const result = await authApi.login(params)
-    console.log('登录成功', result)
 
     // 存 token
     setTokens(result.data.access_token || '', result.data.refresh_token || '')

@@ -5,7 +5,7 @@ import Loading from '@/components/Card/Loading.tsx'
 import RagSimple from '@/components/Card/RagSimple'
 import Text from '@/components/Card/Text.tsx'
 import TrainToopit from '@/components/Card/Train/Toopit'
-import { hasAnswer } from '@/components/Session/types'
+import { hasAnswer, hasIntent, hasRagBuildProgress } from '@/components/Session/types'
 import { isBot } from '@/components/Session/utils/common.ts'
 
 const MessageListItem: React.FC<{ message: Message }> = ({ message }) => {
@@ -118,11 +118,11 @@ export function renderMessageListItem(message: Message) {
     if (hasAnswer(content)) {
       return <Text content={content.answer.normalized_request.ai_summary} />
     }
-    else {
+    else if (hasIntent(content)) {
       return (
         <div className="w-full">
           <Text content={content.workflow_hint.reason} />
-
+          <h2 className="bg-red-500">{message.id}</h2>
           {
             content.intent.actions.includes('ASK_MORE_INFO')
             && content.intent.intent === 'train.start'
@@ -140,9 +140,58 @@ export function renderMessageListItem(message: Message) {
               </>
             )
           }
-          <Actions actions={content.intent.actions} />
+
+          {
+            content.intent.actions.includes('RAG_BUILD_INDEX')
+            && (
+              <RagSimple message={message} />
+            )
+          }
+          <h1 className="bg-orange-500">
+            {content.intent.domain}
+            -
+            {content.intent.sub_intent}
+            -
+            {content.intent.actions}
+          </h1>
+          {/* <Actions actions={content.intent.actions} /> */}
         </div>
       )
+    }
+    else if (hasRagBuildProgress(content)) {
+      return (
+        <div>
+          {
+            content.status === 'pending'
+              ? (
+                  <div>
+                    <h1>
+                      名称：
+                      {content.title}
+                    </h1>
+                    <div className="space-y-2.5 p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <div className="w-3 h-3 bg-blue-400 rounded-full animate-pulse" />
+                        <div className="h-2.5 w-24 bg-gray-200 rounded-full animate-pulse" />
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-3 h-3 bg-blue-400 rounded-full animate-pulse delay-75" />
+                        <div className="h-2.5 w-32 bg-gray-200 rounded-full animate-pulse delay-75" />
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-3 h-3 bg-blue-400 rounded-full animate-pulse delay-150" />
+                        <div className="h-2.5 w-20 bg-gray-200 rounded-full animate-pulse delay-150" />
+                      </div>
+                    </div>
+                  </div>
+                )
+              : `${content.title}rag 构建卡片 结束`
+          }
+        </div>
+      )
+    }
+    else {
+      console.log('存有无法识别的消息内容', message)
     }
   }
   return <Text content={message.content} />
@@ -159,7 +208,7 @@ function parseContent<T>(content: string) {
 }
 
 const actionsMap: Record<ActionType, string> = {
-  AGENT_CREATE: '已经成功创建智能体',
+  AGENT_CREATE: '创建智能体',
   AGENT_UPDATE: '更新智能体',
   WORKFLOW_CREATE: '工作流创建',
   WORKFLOW_RUN: '运行工作流',

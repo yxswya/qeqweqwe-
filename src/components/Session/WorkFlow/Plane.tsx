@@ -1,25 +1,33 @@
+import type { ApiResponse } from '../types'
+import type { StepItem } from './WorkFlow/ProgressDisplay'
 import { Bell, Settings, Workflow } from 'lucide-react'
-import Tabs from '@/components/Tabs'
-import { GovUploadFile } from './WorkFlow/GovUploadFile'
-import ProgressDisplay, { type StepItem } from './WorkFlow/ProgressDisplay'
 import { useStore } from '@/components/Session/store'
-import { hasAnswer, type ApiResponse } from '../types'
+import Tabs from '@/components/Tabs'
+import { hasAnswer, hasIntent } from '../types'
+import { GovUploadFile } from './WorkFlow/GovUploadFile'
+import Products from './WorkFlow/Products'
+import ProgressDisplay from './WorkFlow/ProgressDisplay'
 
 function Plane() {
   const messages = useStore(state => state.messages)
-  const datas: StepItem[] = messages.filter(msg => msg.senderId === 'system-bot-id').map(msg => {
+  const datas: StepItem[] = messages.filter(msg => msg.senderId === 'system-bot-id').map((msg) => {
     if (msg.type === 'json') {
       const content = JSON.parse(msg.content) as ApiResponse
       if (hasAnswer(content)) {
         return { label: content.answer.normalized_request.ai_summary, id: msg.id, status: 'success' }
-      } else {
+      }
+      else if (hasIntent(content)) {
         return { label: content.workflow_hint.reason, id: msg.id, status: 'success' }
       }
-    } else {
+      else {
+        // console.log('存有无法识别的内容')
+      }
+    }
+    else {
       return { label: '意图识别中...', id: msg.id, status: 'failed' }
     }
   })
-  console.log(datas)
+  // console.log(datas)
 
   const tabs = [
     {
@@ -74,8 +82,13 @@ function Plane() {
     },
     {
       id: 'notifications',
-      label: '通知',
-      content: <div>通知内容</div>,
+      label: '产出',
+      content: (
+        <div>
+          <span>rag 构建产物</span>
+          <Products />
+        </div>
+      ),
       icon: <Bell size={16} />,
     },
   ]

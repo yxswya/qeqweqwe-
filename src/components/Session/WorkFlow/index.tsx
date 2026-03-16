@@ -18,21 +18,17 @@ const WorkFlow: React.FC = () => {
     const prevId = prevIdRef.current // 旧的 id
 
     if (prevId !== sessionId) {
-      console.log(`id 从 ${prevId} 变为 ${sessionId}`)
       if (sessionId) {
         navigate(`/app/dashboard/${sessionId}`)
       }
       else {
         navigate(`/app/dashboard`)
       }
-      // 在这里执行数据获取或其他逻辑
     }
 
-    // 更新 ref 为当前 id，供下次比较
     prevIdRef.current = sessionId
   }, [sessionId, navigate]) // 依赖 id，只有 id 变化时才触发
 
-  // 当 status 变化时，触发动画
   useEffect(() => {
     if (contentRef.current) {
       // 移除动画类

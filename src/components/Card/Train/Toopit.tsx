@@ -1,6 +1,6 @@
 import type * as React from 'react'
-import type { ModelRecommendResponse } from '@/components/Session/types/model.ts'
 import type { Message } from '@/components/Session/types'
+import type { ModelRecommendResponse } from '@/components/Session/types/model.ts'
 import { Loader2Icon } from 'lucide-react'
 import { useState } from 'react'
 import Modal from '@/components/Model'
@@ -14,8 +14,7 @@ const TrainToopit: React.FC<{ message: Message }> = ({ message }) => {
   const openModelSelect = () => {
     setIsModalOpen(true)
     setLoading(true)
-    console.log(JSON.parse(message.content))
-    fetch('http://101.35.246.159:3002/api/v1/model/recommend', {
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/model/recommend`, {
       method: 'GET',
       credentials: 'include',
     }).then(res => res.json()).then((modelRecRes: ModelRecommendResponse) => {
@@ -26,19 +25,17 @@ const TrainToopit: React.FC<{ message: Message }> = ({ message }) => {
   }
 
   const trainEvaluate = () => {
-    fetch('http://101.35.246.159:3002/api/v1/train/evaluate', {
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/train/evaluate`, {
       method: 'POST',
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
       },
-    }).then(res => res.json()).then((data) => {
-      console.log(data)
-    })
+    }).then(res => res.json())
   }
 
   const trainModel = (model_id: string) => {
-    fetch('http://101.35.246.159:3002/api/v1/train/start', {
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/train/start`, {
       method: 'POST',
       credentials: 'include',
       headers: {
@@ -47,9 +44,7 @@ const TrainToopit: React.FC<{ message: Message }> = ({ message }) => {
       body: JSON.stringify({
         model_id,
       }),
-    }).then(res => res.json()).then((data) => {
-      console.log(data)
-    })
+    }).then(res => res.json())
   }
 
   return (

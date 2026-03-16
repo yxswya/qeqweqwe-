@@ -27,6 +27,10 @@ export const ComputeEstimateSummary: React.FC<ComputeEstimateSummaryProps> = ({ 
   const costName = costMap[data.cost_sensitivity] || data.cost_sensitivity
   const confidencePercent = Math.round(data.confidence * 100)
 
+  const createAgent = () => {
+    alert('创建智能体')
+  }
+
   return (
     // 采用宽松的行高 (leading-loose) 和柔和的文本颜色，适合长段落阅读
     <div className="leading-loose space-y-4 px-5 pb-5 text-[18px]">
@@ -90,6 +94,9 @@ export const ComputeEstimateSummary: React.FC<ComputeEstimateSummaryProps> = ({ 
         {data.rationale}
       </blockquote>
 
+      <span className="underline text-blue-600 font-bold cursor-pointer" onClick={() => createAgent()}>
+        创建智能体
+      </span>
     </div>
   )
 }

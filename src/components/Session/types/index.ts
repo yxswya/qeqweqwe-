@@ -222,9 +222,27 @@ export interface ApiResponseIntent {
   }
 }
 
-export type ApiResponse = ApiResponseAnswer | ApiResponseIntent
+export interface ApoResponseRagBuildIndex {
+  stage: 'rag-build-index'
+  status: 'pending' | 'success'
+  title: string
+}
+
+export type ApiResponse = ApiResponseAnswer | ApiResponseIntent | ApoResponseRagBuildIndex
 
 // 类型守卫
+// export function hasAnswer(obj: any): obj is ApiResponseAnswer {
+//   return 'answer' in obj
+// }
+
 export function hasAnswer(obj: any): obj is ApiResponseAnswer {
-  return 'answer' in obj
+  return ('stage' in obj) && obj.stage === 'completeness'
+}
+
+export function hasIntent(obj: any): obj is ApiResponseIntent {
+  return ('stage' in obj) && obj.stage === 'intent'
+}
+
+export function hasRagBuildProgress(obj: any): obj is ApoResponseRagBuildIndex {
+  return ('stage' in obj) && obj.stage === 'rag-build-index'
 }

@@ -79,7 +79,7 @@ function RagAnswer() {
     // 模拟AI回复
     setIsTyping(true)
 
-    fetch(`http://101.35.246.159:3002/api/v1/rag/chat/${params.id}`, {
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/rag/chat/${params.id}`, {
       method: 'POST',
       credentials: 'include',
       headers: {

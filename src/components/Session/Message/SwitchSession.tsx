@@ -17,7 +17,7 @@ function SwitchSession() {
 
   // 获取会话列表
   useEffect(() => {
-    fetch('http://101.35.246.159:3002/api/v1/session/chat', {
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/session/chat`, {
       credentials: 'include',
     })
       .then(res => res.json())

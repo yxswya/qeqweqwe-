@@ -54,7 +54,6 @@ function formatTime(dateString: string): string {
 
 // 单个文件卡片组件
 const FileCard: React.FC<{ file: FileResponse }> = ({ file }) => {
-  console.log(file)
   const { icon, color, bg } = getFileIcon(file.fileName)
 
   return (
@@ -79,7 +78,6 @@ const FileCard: React.FC<{ file: FileResponse }> = ({ file }) => {
         className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all duration-200"
         onClick={() => {
           // TODO: 实现删除功能
-          console.log('删除文件:', file.id)
         }}
         title="删除文件"
       >
@@ -95,8 +93,6 @@ export const GovUploadFile: React.FC = () => {
 
   const handleRagBuild = async () => {
     if (!sessionId) {
-      console.log('不在会话中')
-
       return
     }
     if (inputRef.current) {
@@ -114,13 +110,12 @@ export const GovUploadFile: React.FC = () => {
     }
     formData.append('message_id', '')
     // 使用 @elysiajs/eden 调用上传接口
-    const data = await fetch(`http://101.35.246.159:3002/api/v1/governance/${sessionId || ''}`, {
+    const data = await fetch(`${import.meta.env.VITE_API_BASE_URL}/governance/${sessionId || ''}`, {
       method: 'POST',
       credentials: 'include',
       body: formData,
     }).then(res => res.json())
 
-    console.log(data)
     setStatus({
       files: [...files, ...data],
     })

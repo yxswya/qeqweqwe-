@@ -23,7 +23,6 @@ export interface AppLoaderData {
 export default function UserProfilePremium() {
   // 读取 /app 路由的 loader 返回数据（需给路由配 id）
   const data = useRouteLoaderData('app') as AppLoaderData
-  console.log(data)
 
   const [activeTab, setActiveTab] = useState<
     'basic' | 'security' | 'preferences'
@@ -51,7 +50,6 @@ export default function UserProfilePremium() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    console.log('Saved:', formData)
     alert('资料已安全更新')
   }
 

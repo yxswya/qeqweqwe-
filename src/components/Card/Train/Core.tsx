@@ -14,19 +14,16 @@ const TrainCore: React.FC = () => {
     if (!files || files.length === 0)
       return
 
-    console.log(files)
-    const fileArray = Array.from(files)
+    const fileArray = [...files]
     const formData = new FormData()
     for (let i = 0; i < fileArray.length; i++) {
       formData.append('files', fileArray[i])
     }
 
-    fetch('http://101.35.246.159:3002/api/v1/train/start', {
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/train/start`, {
       method: 'POST',
       credentials: 'include',
       body: formData,
-    }).then(res => res.json()).then((data) => {
-      console.log(data)
     })
   }
 

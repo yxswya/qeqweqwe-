@@ -3,8 +3,13 @@ import type { ActionType, ApiResponse, ClarificationQuestion, Message } from '@/
 
 import { fetchEventSource } from '@microsoft/fetch-event-source'
 import { create } from 'zustand'
-import { hasAnswer } from '@/components/Session/types'
+import { hasAnswer, hasIntent } from '@/components/Session/types'
 import { getSessionMessages } from '../utils/elysia'
+
+// 使用 AbortController 来控制主动断开连接
+const ctrl = new AbortController()
+
+let fs: any
 
 // RAG 构建进度状态
 export interface RagBuildProgress {
@@ -96,15 +101,49 @@ export const useStore = create<{
     set(obj)
   },
   initConversation(sessionId) {
-    const { getMessages, clearSession } = get()
+    const { getMessages, clearSession, parseContent } = get()
     if (!sessionId) {
       clearSession()
       return
     }
+    set({ sessionId })
 
-    set({
-      sessionId,
-    })
+    if (!fs) {
+      fs = fetchEventSource(`${import.meta.env.VITE_API_BASE_URL}/session/chat/sse/${sessionId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        signal: ctrl.signal, // 传入 signal 以便随时中断
+
+        // 连接成功打开时触发
+        async onopen() {},
+
+        // 接收到服务端消息时触发
+        onmessage(msg) {
+          const { data, event } = msg
+
+          if (event === 'message') {
+            console.log(event, '///', data)
+            // TODO: 新增或替换指定消息内容
+            parseContent(data)
+          }
+        },
+
+        // 连接关闭时触发
+        onclose() {
+          console.log('🔌 SSE 连接已关闭')
+          // 注意：fetch-event-source 默认会在关闭后尝试重连
+          // 如果你不想重连，可以在这里抛出异常或调用 ctrl.abort()
+        },
+
+        // 发生错误时触发
+        onerror(err) {
+          console.error('⚠️ SSE 发生异常:', err)
+          // throw err; // 如果抛出错误，就不会自动重连
+        },
+      })
+    }
 
     getMessages().catch(console.error)
   },
@@ -117,7 +156,6 @@ export const useStore = create<{
       return
 
     const { messages, files } = response
-    console.log(messages)
     set({
       messages: [...messages],
       files: [...files],
@@ -126,16 +164,13 @@ export const useStore = create<{
   },
 
   async fetchMessage(text) {
-    const { setStatusText, sessionId, setStatus, parseContent } = get()
+    const { sessionId, setStatus } = get()
     setStatus({
       status: 'loading',
     })
 
-    await fetchEventSource(`http://101.35.246.159:3002/api/v1/session/chat/${sessionId || ''}`, {
-      // 关键配置：设置为 true 以携带 Cookie
+    fetch(`${import.meta.env.VITE_API_BASE_URL}/session/chat/${sessionId || ''}`, {
       credentials: 'include',
-      // 如果是跨域请求，建议明确指定 mode 为 'cors'
-      mode: 'cors',
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -144,40 +179,9 @@ export const useStore = create<{
         messageId: 'xx',
         text,
       }),
-
-      // 当接收到后端 yield sse() 推送的消息时
-      onmessage(ev) {
-        // ev.event 对应你后端的 event 字段
-        // ev.data  对应你后端的 data 字段（字符串形式）
-        console.log(ev.data)
-
-        if (ev.event === 'status' || ev.event === 'heartbeat') {
-          // 解析去掉双引号
-          setStatusText(ev.data)
-        }
-        else if (ev.event === 'result') {
-          setStatusText('思考完毕！')
-          // setResult(ev.data)
-          parseContent(ev.data)
-        }
-        else if (ev.event === 'error') {
-          setStatusText(`发生错误: ${ev.data}`)
-        }
-      },
-
-      onclose() {
-        console.log('连接已正常关闭')
-      },
-
-      onerror(err) {
-        setStatus({
-          status: 'none',
-          clarificationQuestions: [],
-        })
-        console.error('流异常断开', err)
-        setStatusText('连接断开重试中...')
-        throw err // 抛出错误会自动触发重连
-      },
+    }).then(res => res.json()).then((data) => {
+      const { sessionId } = data
+      set({ sessionId })
     })
   },
   setSessionStatus(data: MessageResponse) {
@@ -195,8 +199,8 @@ export const useStore = create<{
           })
         }
       }
-      else {
-        console.log(content.intent.actions.join('/'), '/', content.workflow_hint.stage)
+      else if (hasIntent(content)) {
+        // console.log(content.intent.actions.join('/'), '/', content.workflow_hint.stage)
         if (content.intent.actions.includes('ASK_MORE_INFO') || content.workflow_hint.stage) {
           setStatus({
             sessionId,
@@ -211,6 +215,9 @@ export const useStore = create<{
             actions: content.intent.actions,
           })
         }
+      }
+      else {
+        // console.log('存有无法识别的消息')
       }
     }
     else {
