@@ -6,11 +6,6 @@ import { create } from 'zustand'
 import { hasAnswer, hasIntent } from '@/components/Session/types'
 import { getSessionMessages } from '../utils/elysia'
 
-// 使用 AbortController 来控制主动断开连接
-const ctrl = new AbortController()
-
-let fs: any
-
 // RAG 构建进度状态
 export interface RagBuildProgress {
   job_id: string
@@ -23,6 +18,12 @@ export interface RagBuildProgress {
 export interface RagBuildLogs {
   job_id: string
   logs: string[]
+}
+
+// SSE 连接管理状态
+interface SSEConnection {
+  controller: AbortController
+  fetchPromise: Promise<void> | null
 }
 
 export const useStore = create<{
@@ -54,6 +55,10 @@ export const useStore = create<{
   setStatusText: (text: string) => void
   parseContent: (content: string) => void
   setSessionStatus: (data: MessageResponse) => void
+
+  // SSE 连接管理
+  sseConnection: SSEConnection | null
+  disconnectSSE: () => void
 }>((set, get) => ({
   sessionId: '',
   status: 'input',
@@ -64,6 +69,7 @@ export const useStore = create<{
   ragBuild: [],
   ragBuildProgress: null,
   ragBuildLogs: null,
+  sseConnection: null,
 
   statusText: '',
   setStatusText: (text) => {
@@ -89,6 +95,9 @@ export const useStore = create<{
     }
   },
   clearSession() {
+    const { disconnectSSE } = get()
+    // 断开 SSE 连接
+    disconnectSSE()
     set({
       messages: [],
       status: 'input',
@@ -100,47 +109,81 @@ export const useStore = create<{
   setStatus(obj) {
     set(obj)
   },
+
+  // 断开 SSE 连接
+  disconnectSSE() {
+    const { sseConnection } = get()
+    if (sseConnection?.controller) {
+      sseConnection.controller.abort()
+      console.log('🔌 SSE 连接已主动断开')
+    }
+    set({ sseConnection: null })
+  },
+
   initConversation(sessionId) {
-    const { getMessages, clearSession, parseContent } = get()
+    const { getMessages, clearSession, parseContent, disconnectSSE, sseConnection } = get()
     if (!sessionId) {
       clearSession()
       return
     }
+
+    // 如果已有连接且 sessionId 不同，先断开旧连接
+    if (sseConnection && get().sessionId !== sessionId) {
+      disconnectSSE()
+    }
+
     set({ sessionId })
 
-    if (!fs) {
-      fs = fetchEventSource(`${import.meta.env.VITE_API_BASE_URL}/session/chat/sse/${sessionId}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
+    // 只有在没有活跃连接时才创建新连接
+    if (!sseConnection) {
+      // 添加时间戳破坏缓存
+      const cacheBuster = Date.now()
+      const controller = new AbortController()
+
+      const fetchPromise = fetchEventSource(
+        `${import.meta.env.VITE_API_BASE_URL}/session/chat/sse/${sessionId}?_t=${cacheBuster}`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache',
+          },
+          signal: controller.signal,
+
+          // 连接成功打开时触发
+          async onopen() {
+            console.log('✅ SSE 连接已建立', { sessionId, timestamp: cacheBuster })
+          },
+
+          // 接收到服务端消息时触发
+          onmessage(msg) {
+            const { data, event } = msg
+
+            if (event === 'message') {
+              console.log(event, '///', data)
+              parseContent(data)
+            }
+          },
+
+          // 连接关闭时触发
+          onclose() {
+            console.log('🔌 SSE 连接已关闭')
+            set({ sseConnection: null })
+          },
+
+          // 发生错误时触发
+          onerror(err) {
+            console.error('⚠️ SSE 发生异常:', err)
+            set({ sseConnection: null })
+            throw err
+          },
         },
-        signal: ctrl.signal, // 传入 signal 以便随时中断
+      )
 
-        // 连接成功打开时触发
-        async onopen() {},
-
-        // 接收到服务端消息时触发
-        onmessage(msg) {
-          const { data, event } = msg
-
-          if (event === 'message') {
-            console.log(event, '///', data)
-            // TODO: 新增或替换指定消息内容
-            parseContent(data)
-          }
-        },
-
-        // 连接关闭时触发
-        onclose() {
-          console.log('🔌 SSE 连接已关闭')
-          // 注意：fetch-event-source 默认会在关闭后尝试重连
-          // 如果你不想重连，可以在这里抛出异常或调用 ctrl.abort()
-        },
-
-        // 发生错误时触发
-        onerror(err) {
-          console.error('⚠️ SSE 发生异常:', err)
-          // throw err; // 如果抛出错误，就不会自动重连
+      set({
+        sseConnection: {
+          controller,
+          fetchPromise,
         },
       })
     }
