@@ -3,6 +3,7 @@ import type { ActionType, ApiResponse, ClarificationQuestion, Message } from '@/
 
 import { fetchEventSource } from '@microsoft/fetch-event-source'
 import { create } from 'zustand'
+import { server } from '@/api/modules/session'
 import { getAccessToken } from '@/auth'
 import { hasAnswer, hasIntent } from '@/components/Session/types'
 import { getSessionMessages } from '../utils/elysia'
@@ -141,6 +142,7 @@ export const useStore = create<{
       const cacheBuster = Date.now()
       const controller = new AbortController()
 
+      console.log('开始链接')
       const fetchPromise = fetchEventSource(
         `${import.meta.env.VITE_API_BASE_URL}/session/chat/sse/${sessionId}?_t=${cacheBuster}`,
         {
@@ -194,7 +196,12 @@ export const useStore = create<{
   },
 
   async getMessages() {
-    const { sessionId, setSessionStatus } = get()
+    const { sessionId, setSessionStatus, clearSession } = get()
+
+    if (!sessionId) {
+      clearSession()
+    }
+
     const response = await getSessionMessages(sessionId)
 
     if (!response)
@@ -209,27 +216,39 @@ export const useStore = create<{
   },
 
   async fetchMessage(text) {
+    console.log('fasong ')
     const { sessionId, setStatus } = get()
     setStatus({
       status: 'loading',
     })
 
-    fetch(`${import.meta.env.VITE_API_BASE_URL}/session/chat/${sessionId || ''}`, {
-      credentials: 'include',
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        messageId: 'xx',
-        text,
-      }),
-    }).then(res => res.json()).then((data) => {
-      const { sessionId } = data
+    // fetch(`${import.meta.env.VITE_API_BASE_URL}/session/chat/${sessionId || ''}`, {
+    //   credentials: 'include',
+    //   method: 'POST',
+    //   headers: {
+    //     'Content-Type': 'application/json',
+    //     'Authorization': `Bearer ${getAccessToken()}`,
+    //   },
+    //   body: JSON.stringify({
+    //     messageId: 'xx',
+    //     text,
+    //   }),
+    // }).then(res => res.json()).then((data) => {
+    //   console.log('back', data)
+    //   const { sessionId } = data
+    //   set({ sessionId })
+    // })
+
+    server.api.v1.session.chat({ sessionId }).post({ messageId: 'xx', text }).then((data) => {
+      console.log('back', data)
+      const { sessionId } = data.data
       set({ sessionId })
     })
   },
-  setSessionStatus(data: MessageResponse) {
+  setSessionStatus(data: MessageResponse | undefined) {
+    if (!data)
+      return
+
     const { setStatus } = get()
     const sessionId = data.sessionId
     if (data.type === 'json') {
