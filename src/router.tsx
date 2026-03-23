@@ -73,7 +73,7 @@ export const router = createHashRouter([
           { path: 'rag-answer', element: <RagAnswer /> },
           { path: 'rag-answer/:id', element: <RagAnswer /> },
           { path: 'train-answer', element: <TrainAnswer /> },
-          { path: 'train-answer/:id', element: <TrainAnswer /> },
+          { path: 'train-answer/:id/:sessionId', element: <TrainAnswer /> },
         ],
       },
 

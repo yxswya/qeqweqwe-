@@ -3,8 +3,6 @@ import { useParams } from 'react-router'
 import { server } from '@/api/modules/session'
 import './style.css'
 
-const CHAT_BASE_URL = 'http://127.0.0.1:8002'
-
 interface Message {
   id: number
   content: string
@@ -12,30 +10,17 @@ interface Message {
   timestamp: string
 }
 
-interface StartSessionResponse {
+interface ModelPredictResponse {
   code: number
   message: string
   data: {
     answer: {
-      session_id: string
-      model_id: string
-      model_type: string
-      system_prompt: string
-    }
-    confidence: number
-    sources: string[]
-    error: string | null
-  }
-  trace_id: string
-}
-
-interface SendMessageResponse {
-  code: number
-  message: string
-  data: {
-    answer: {
-      response: string
-      session_id: string
+      model_uri: string
+      task: string
+      prompt: string
+      text: string
+      max_new_tokens: number
+      temperature: number
     }
     confidence: number
     sources: string[]
@@ -48,79 +33,44 @@ function TrainAnswer() {
   const [messages, setMessages] = useState<Message[]>([])
   const [inputValue, setInputValue] = useState('')
   const [isTyping, setIsTyping] = useState(false)
-  const [sessionId, setSessionId] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const params = useParams<{ id: string }>()
+  const params = useParams<{ id: string, sessionId: string }>()
 
   // 自动滚动到底部
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
-  console.log(params)
-  // 启动会话
+  // 初始化
   useEffect(() => {
-    const startSession = async () => {
-      if (!params.id) {
-        setError('缺少 model_id 参数')
-        setIsLoading(false)
-        return
-      }
-
-      try {
-        const response = await server.api.v1.train.chat({
-          ckpt_id: 'file://runs\\train\\hf_1b4f980c',
-        }).post({
-          text: '你是一个智能客服助手',
-        })
-
-        const data: StartSessionResponse = response
-
-        console.log(data)
-
-        // if (data.code === 0 && data.data.answer.session_id) {
-        //   setSessionId(data.data.answer.session_id)
-        //   // 添加欢迎消息
-        //   setMessages([
-        //     {
-        //       id: Date.now(),
-        //       content: '你好！我是智能助手，有什么可以帮助你的吗？',
-        //       isUser: false,
-        //       timestamp: new Date().toLocaleTimeString('zh-CN', {
-        //         hour: '2-digit',
-        //         minute: '2-digit',
-        //       }),
-        //     },
-        //   ])
-        // }
-        // else {
-        //   setError(data.message || '启动会话失败')
-        // }
-      }
-      catch (err) {
-        setError('连接服务器失败')
-        console.error('启动会话失败:', err)
-      }
-      finally {
-        setIsLoading(false)
-      }
+    if (!params.id) {
+      setError('缺少 model_id 参数')
+      setIsLoading(false)
+      return
     }
 
-    startSession()
-  }, [params.id])
-
-  // 结束会话
-  useEffect(() => {
-    return () => {
-      if (sessionId) {
-        fetch(`${CHAT_BASE_URL}/api/chat/model/end/${sessionId}`, {
-          method: 'DELETE',
-        }).catch(err => console.error('结束会话失败:', err))
-      }
+    if (!params.sessionId) {
+      setError('缺少 sessionId 参数')
+      setIsLoading(false)
+      return
     }
-  }, [sessionId])
+
+    // 添加欢迎消息
+    setMessages([
+      {
+        id: Date.now(),
+        content: '你好！我是智能助手，有什么可以帮助你的吗？',
+        isUser: false,
+        timestamp: new Date().toLocaleTimeString('zh-CN', {
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+      },
+    ])
+    setIsLoading(false)
+  }, [params.id, params.sessionId])
 
   useEffect(() => {
     scrollToBottom()
@@ -128,7 +78,7 @@ function TrainAnswer() {
 
   // 发送消息
   const handleSend = async () => {
-    if (inputValue.trim() === '' || !sessionId)
+    if (inputValue.trim() === '' || !params.id || !params.sessionId)
       return
 
     // 添加用户消息
@@ -148,24 +98,19 @@ function TrainAnswer() {
     setIsTyping(true)
 
     try {
-      const response = await fetch(`${CHAT_BASE_URL}/api/chat/model/send`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json; charset=utf-8',
-        },
-        body: JSON.stringify({
-          session_id: sessionId,
-          message: currentInput,
-          max_new_tokens: 256,
-          temperature: 0.7,
-        }),
+      // 使用中转接口 POST /model/predict/:sessionId
+      const response = await server.api.v1.model.predict.post({
+        model_id: params.id,
+        prompt: currentInput,
+        max_new_tokens: 256,
       })
 
-      const data: SendMessageResponse = await response.json()
-      if (data.code === 0 && data.data.answer.response) {
+      const data = response.data as ModelPredictResponse
+
+      if (data.code === 0 && data.data?.answer?.text) {
         const aiMessage: Message = {
           id: Date.now() + 1,
-          content: data.data.answer.response,
+          content: data.data.answer.text,
           isUser: false,
           timestamp: new Date().toLocaleTimeString('zh-CN', {
             hour: '2-digit',
@@ -175,7 +120,6 @@ function TrainAnswer() {
         setMessages(prev => [...prev, aiMessage])
       }
       else {
-        // 显示错误消息
         const errorMessage: Message = {
           id: Date.now() + 1,
           content: `抱歉，出现了错误：${data.message || '未知错误'}`,
@@ -240,7 +184,7 @@ function TrainAnswer() {
         <div className="messages-container">
           <div className="error-message">
             <p>{error}</p>
-            <p className="error-hint">请检查 model_id 参数是否正确，或联系管理员</p>
+            <p className="error-hint">请检查参数是否正确，或联系管理员</p>
           </div>
         </div>
       </div>

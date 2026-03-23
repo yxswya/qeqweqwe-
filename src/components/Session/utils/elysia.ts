@@ -15,6 +15,11 @@ export interface Train {
   content: string
 }
 
+export interface Model {
+  id: string
+  externalId: string
+}
+
 export interface MessageResponse {
   id: string
   sessionId: string
@@ -27,6 +32,7 @@ export interface MessageResponse {
   sender: null | Record<string, any>
   rags: Rag[]
   trains: Train[]
+  models: Model[]
 }
 
 export interface FileResponse {
