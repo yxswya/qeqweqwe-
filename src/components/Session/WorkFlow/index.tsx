@@ -42,14 +42,15 @@ const WorkFlow: React.FC = () => {
 
   return (
     <div className="h-full flex flex-col relative">
-      <div className="h-full">
+      <div className="flex-1 h-0">
         <Plane />
       </div>
 
-      {/* 弹出内容区 */}
-      <div className="absolute bottom-0 left-0 right-0 flex justify-center pb-6 px-4">
-        <style>
-          {`
+      <div className="h-96 shrink-0">
+        {/* 弹出内容区 */}
+        <div className="absolute bottom-0 left-0 right-0 flex justify-center pb-6 px-4">
+          <style>
+            {`
           @keyframes slideInFromBottom {
             from {
               opacity: 0;
@@ -64,11 +65,12 @@ const WorkFlow: React.FC = () => {
             animation: slideInFromBottom 0.3s cubic-bezier(0.16, 1, 0.3, 1);
           }
         `}
-        </style>
-        <div ref={contentRef} className="slide-in-from-bottom w-full max-w-2xl">
-          {status === 'input' && <Input />}
-          {status === 'questions' && <Questions />}
-          <Actions />
+          </style>
+          <div ref={contentRef} className="slide-in-from-bottom w-full max-w-2xl">
+            {status === 'input' && <Input />}
+            {status === 'questions' && <Questions />}
+            <Actions />
+          </div>
         </div>
       </div>
     </div>

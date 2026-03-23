@@ -111,7 +111,7 @@ const Tabs: React.FC<TabsProps> = ({
       </style>
 
       {/* Tab 头部 */}
-      <div className={`flex ${containerClassName[variant]}`}>
+      <div className={`shrink-0 flex ${containerClassName[variant]}`}>
         {tabs.map(tab => (
           <button
             key={tab.id}
@@ -126,7 +126,7 @@ const Tabs: React.FC<TabsProps> = ({
       </div>
 
       {/* Tab 内容 */}
-      <div className="mt-4 tabs-content">
+      <div className="mt-4 tabs-content flex-1 h-0">
         {activeTab?.content}
       </div>
     </div>

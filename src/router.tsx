@@ -14,6 +14,7 @@ import LoginPage, {
 } from './pages/Login'
 import RagAnswer from './pages/RagAnswer'
 import Settings from './pages/Settings'
+import TrainAnswer from './pages/TrainAnswer'
 import UserProfile from './pages/UserProfile'
 
 export const router = createHashRouter([
@@ -71,6 +72,8 @@ export const router = createHashRouter([
           { path: 'user-profile', element: <UserProfile /> },
           { path: 'rag-answer', element: <RagAnswer /> },
           { path: 'rag-answer/:id', element: <RagAnswer /> },
+          { path: 'train-answer', element: <TrainAnswer /> },
+          { path: 'train-answer/:id', element: <TrainAnswer /> },
         ],
       },
 

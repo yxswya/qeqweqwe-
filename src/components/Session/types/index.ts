@@ -222,13 +222,17 @@ export interface ApiResponseIntent {
   }
 }
 
-export interface ApoResponseRagBuildIndex {
+export interface ApiResponseRagBuildIndex {
   stage: 'rag-build-index'
   status: 'pending' | 'success'
   title: string
 }
 
-export type ApiResponse = ApiResponseAnswer | ApiResponseIntent | ApoResponseRagBuildIndex
+export interface ApoResponseModelTrainIndex {
+  [key: string]: any
+}
+
+export type ApiResponse = ApiResponseAnswer | ApiResponseIntent | ApiResponseRagBuildIndex | ApoResponseModelTrainIndex
 
 // 类型守卫
 // export function hasAnswer(obj: any): obj is ApiResponseAnswer {
@@ -243,6 +247,10 @@ export function hasIntent(obj: any): obj is ApiResponseIntent {
   return ('stage' in obj) && obj.stage === 'intent'
 }
 
-export function hasRagBuildProgress(obj: any): obj is ApoResponseRagBuildIndex {
+export function hasRagBuildProgress(obj: any): obj is ApiResponseRagBuildIndex {
   return ('stage' in obj) && obj.stage === 'rag-build-index'
+}
+
+export function hasModelTrainProgress(obj: any): obj is ApoResponseModelTrainIndex {
+  return ('stage' in obj) && obj.stage === 'model-train'
 }

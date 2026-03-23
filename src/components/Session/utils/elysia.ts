@@ -8,6 +8,13 @@ export interface Rag {
   content: string
 }
 
+export interface Train {
+  id: string
+  sessionId: string
+  messageId: string
+  content: string
+}
+
 export interface MessageResponse {
   id: string
   sessionId: string
@@ -19,6 +26,7 @@ export interface MessageResponse {
   createdAt: string
   sender: null | Record<string, any>
   rags: Rag[]
+  trains: Train[]
 }
 
 export interface FileResponse {

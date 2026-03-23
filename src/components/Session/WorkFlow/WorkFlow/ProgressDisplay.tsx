@@ -96,7 +96,7 @@ const ProgressDisplay: React.FC<ProgressDisplayProps> = ({ steps, currentStepInd
           {steps.map((step, index) => {
             const isCurrent = index === currentStepIndex
             const isPast = index < currentStepIndex
-            const hasSubSteps = step.subSteps && step.subSteps.length > 0
+            const hasSubSteps = step?.subSteps && step?.subSteps.length > 0
             const isExpanded = expandedSteps.has(step.id)
 
             return (
@@ -183,7 +183,7 @@ const ProgressDisplay: React.FC<ProgressDisplayProps> = ({ steps, currentStepInd
                 {/* 子步骤 */}
                 {hasSubSteps && isExpanded && (
                   <div className="expand-collapse ml-9 mt-1 space-y-1">
-                    {step.subSteps!.map((subStep, subIndex) => {
+                    {step?.subSteps!.map((subStep, subIndex) => {
                       const subIsCurrent = subStep.status === 'running'
                       const subIsPast = subStep.status === 'success'
 

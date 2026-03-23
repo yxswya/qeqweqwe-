@@ -25,9 +25,15 @@ const RagSimple: React.FC<{ message: Message }> = ({ message }) => {
   }
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setSelectedFiles(prev => [...prev, ...[...e.target.files!]])
+    const files = e.target.files
+    if (files && files.length > 0) {
+      setSelectedFiles(prev => [...prev, ...[...files]])
     }
+    setTimeout(() => {
+      if (inputRef.current) {
+        inputRef.current.value = ''
+      }
+    }, 0)
   }
 
   const removeFile = (fileToRemove: File) => {
@@ -70,7 +76,7 @@ const RagSimple: React.FC<{ message: Message }> = ({ message }) => {
   }
 
   return (
-    <div className="px-5 py-4 space-y-4">
+    <div className="px-5 pb-2 space-y-4 flex justify-end">
       <span
         onClick={handleRagBuild}
         className="underline text-blue-600 font-bold cursor-pointer text-lg"

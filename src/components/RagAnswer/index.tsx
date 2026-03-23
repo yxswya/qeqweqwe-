@@ -118,7 +118,7 @@ function RagAnswer() {
     <div className="rag-answer-container">
       <div className="rag-answer-header">
         <h2>智能问答助手</h2>
-        <p className="subtitle">基于RAG技术的知识问答系统</p>
+        <p className="subtitle">基于 RAG 技术的知识问答系统 · 支持上下文对话</p>
       </div>
 
       <div className="messages-container">
@@ -178,11 +178,15 @@ function RagAnswer() {
             onClick={handleSend}
             disabled={!inputValue.trim()}
           >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6 }}>
+              <line x1="22" y1="2" x2="11" y2="13" />
+              <polygon points="22 2 15 22 11 13 2 9 22 2" />
+            </svg>
             发送
           </button>
         </div>
         <div className="input-footer">
-          <span className="tip">按 Enter 发送，Shift + Enter 换行</span>
+          <span className="tip">Enter 发送 · Shift + Enter 换行</span>
         </div>
       </div>
     </div>
