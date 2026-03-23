@@ -71,7 +71,7 @@ function TrainAnswer() {
 
       try {
         const response = await server.api.v1.train.chat({
-          ckpt_id: params.id,
+          ckpt_id: 'file://runs\\train\\hf_1b4f980c',
         }).post({
           text: '你是一个智能客服助手',
         })
