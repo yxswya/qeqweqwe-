@@ -49,8 +49,8 @@ const TopBar: React.FC = () => {
 
   return (
     <div
-      className="w-full h-15 bg-white flex items-center justify-between px-[26.67px] relative"
-      style={{ boxShadow: '2.67px 2.67px 10.67px rgba(82, 90, 102, 0.08)' }}
+      className="w-full h-15 bg-white flex items-center justify-between px-[26.67px] relative border-b border-slate-200"
+      // style={{ boxShadow: '2.67px 2.67px 10.67px rgba(82, 90, 102, 0.08)' }}
     >
       <div className="flex items-center shrink-0 gap-1">
         <InfinityIcon color="#334bf8" size={38} />

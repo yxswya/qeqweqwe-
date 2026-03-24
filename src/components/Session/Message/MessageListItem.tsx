@@ -10,6 +10,10 @@ import { isBot } from '@/components/Session/utils/common.ts'
 
 const MessageListItem: React.FC<{ message: Message }> = ({ message }) => {
   const isUser = message.senderId !== 'system-bot-id'
+  // 检查是否是模型训练进度卡片（需要hover展开详情，不能使用overflow-hidden）
+  const content = message.content
+  const isModelTrainCard = !isUser && typeof content === 'object' && content !== null && hasModelTrainProgress(content as ApiResponse)
+
   return (
     <>
       {/* 注入关键帧动画 */}
@@ -60,7 +64,7 @@ const MessageListItem: React.FC<{ message: Message }> = ({ message }) => {
         >
           <div
             className={
-              `mb-2 overflow-hidden max-w-[70%] ${
+              `mb-2 ${isModelTrainCard ? '' : 'overflow-hidden'} max-w-[70%] ${
                 message.senderId !== 'system-bot-id'
                   ? 'origin-bottom-right rounded-s-2xl rounded-b-2xl bg-[#2563EB] text-white'
                   : 'origin-bottom-left rounded-2xl bg-white'

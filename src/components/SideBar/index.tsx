@@ -5,7 +5,7 @@ const SideBar: React.FC = () => {
     `block py-2 px-4 rounded transition-colors ${isActive ? 'bg-blue-500 text-white' : 'text-gray-700 hover:bg-gray-200'}`
 
   return (
-    <div className="w-68 bg-white flex flex-col shrink-0 p-4">
+    <div className="w-68 bg-white flex flex-col shrink-0 p-4 border-r border-slate-200">
       <ul>
         <li>
           <NavLink to="/app/dashboard" className={linkClass}>
@@ -20,16 +20,6 @@ const SideBar: React.FC = () => {
         <li>
           <NavLink to="/app/rags" className={linkClass}>
             RAG 知识库
-          </NavLink>
-        </li>
-        <li>
-          <NavLink to="/app/settings" className={linkClass}>
-            设置
-          </NavLink>
-        </li>
-        <li>
-          <NavLink to="/rag-answer" className={linkClass}>
-            RAG构建产物问答
           </NavLink>
         </li>
       </ul>

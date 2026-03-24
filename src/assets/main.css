@@ -1,5 +1,13 @@
 @import "tailwindcss";
 
+@font-face {
+    font-family: 'JetBrains Maple Mono';
+    src: url('https://websource-meiyi.oss-cn-hangzhou.aliyuncs.com/website/%E7%BE%8E%E5%BC%82%E5%AE%98%E7%BD%91%E9%9D%99%E6%80%81%E8%B5%84%E6%BA%90/JetBrainsMapleMono-Medium.ttf') format('truetype');
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+}
+
 * {
     font-family: PingFang SC, Helvetica Neue, Helvetica, Arial, sans-serif;
 }
