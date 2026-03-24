@@ -13,12 +13,17 @@ const SideBar: React.FC = () => {
           </NavLink>
         </li>
         <li>
+          <NavLink to="/app/models" className={linkClass}>
+            模型列表
+          </NavLink>
+        </li>
+        <li>
           <NavLink to="/app/settings" className={linkClass}>
             设置
           </NavLink>
         </li>
         <li>
-          <NavLink to="/app/rag-answer" className={linkClass}>
+          <NavLink to="/rag-answer" className={linkClass}>
             RAG构建产物问答
           </NavLink>
         </li>

@@ -1,14 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams } from 'react-router'
 import { server } from '@/api/modules/session'
-import './style.css'
-
-interface Message {
-  id: number
-  content: string
-  isUser: boolean
-  timestamp: string
-}
+import { ChatMain, ConversationList, type Conversation, type Message } from './components'
 
 interface ModelPredictResponse {
   code: number
@@ -29,19 +22,39 @@ interface ModelPredictResponse {
   trace_id: string
 }
 
+// 模拟会话列表
+const mockConversations: Conversation[] = [
+  {
+    id: 1,
+    name: '模型助手',
+    avatar: '模',
+    avatarClass: 'a2',
+    preview: '基于训练模型的知识问答',
+    time: '刚刚',
+    online: true,
+  },
+  {
+    id: 2,
+    name: '推理服务',
+    avatar: '推',
+    avatarClass: 'a4',
+    preview: '高性能模型推理',
+    time: '10分钟前',
+    unread: 1,
+  },
+]
+
 function TrainAnswer() {
+  const params = useParams<{ id: string, sessionId: string }>()
+
+  const [conversations] = useState(mockConversations)
+  const [activeConversation, setActiveConversation] = useState<number>(1)
   const [messages, setMessages] = useState<Message[]>([])
   const [inputValue, setInputValue] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const params = useParams<{ id: string, sessionId: string }>()
-
-  // 自动滚动到底部
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }
+  const [showSidebar, setShowSidebar] = useState(true)
 
   // 初始化
   useEffect(() => {
@@ -67,21 +80,25 @@ function TrainAnswer() {
           hour: '2-digit',
           minute: '2-digit',
         }),
+        status: 'read',
       },
     ])
     setIsLoading(false)
   }, [params.id, params.sessionId])
 
-  useEffect(() => {
-    scrollToBottom()
-  }, [messages])
+  // 选择会话
+  const handleSelectConversation = (id: number) => {
+    setActiveConversation(id)
+    if (window.innerWidth <= 768) {
+      setShowSidebar(false)
+    }
+  }
 
   // 发送消息
   const handleSend = async () => {
     if (inputValue.trim() === '' || !params.id || !params.sessionId)
       return
 
-    // 添加用户消息
     const userMessage: Message = {
       id: Date.now(),
       content: inputValue,
@@ -90,6 +107,7 @@ function TrainAnswer() {
         hour: '2-digit',
         minute: '2-digit',
       }),
+      status: 'sent',
     }
 
     setMessages(prev => [...prev, userMessage])
@@ -98,7 +116,6 @@ function TrainAnswer() {
     setIsTyping(true)
 
     try {
-      // 使用中转接口 POST /model/predict/:sessionId
       const response = await server.api.v1.model.predict.post({
         model_id: params.id,
         prompt: currentInput,
@@ -116,8 +133,16 @@ function TrainAnswer() {
             hour: '2-digit',
             minute: '2-digit',
           }),
+          status: 'read',
         }
         setMessages(prev => [...prev, aiMessage])
+
+        // 更新用户消息状态
+        setMessages(prev =>
+          prev.map(msg =>
+            msg.id === userMessage.id ? { ...msg, status: 'read' } : msg,
+          ),
+        )
       }
       else {
         const errorMessage: Message = {
@@ -128,6 +153,7 @@ function TrainAnswer() {
             hour: '2-digit',
             minute: '2-digit',
           }),
+          status: 'read',
         }
         setMessages(prev => [...prev, errorMessage])
       }
@@ -141,6 +167,7 @@ function TrainAnswer() {
           hour: '2-digit',
           minute: '2-digit',
         }),
+        status: 'read',
       }
       setMessages(prev => [...prev, errorMessage])
       console.error('发送消息失败:', err)
@@ -150,24 +177,20 @@ function TrainAnswer() {
     }
   }
 
-  // 按Enter发送
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      handleSend()
-    }
-  }
+  // 获取当前会话信息
+  const currentConv = conversations.find(c => c.id === activeConversation)
 
   // 加载状态
   if (isLoading) {
     return (
-      <div className="rag-answer-container">
-        <div className="rag-answer-header">
-          <h2>智能问答助手</h2>
-          <p className="subtitle">正在连接模型服务...</p>
-        </div>
-        <div className="messages-container">
-          <div className="loading-indicator">正在初始化会话，请稍候...</div>
+      <div className="w-full h-full bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-4 bg-[#e8e0f0] text-[#6b4c8a]">
+            <svg className="animate-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+            </svg>
+          </div>
+          <p className="text-sm text-[#6b7280]">正在连接模型服务...</p>
         </div>
       </div>
     )
@@ -176,89 +199,62 @@ function TrainAnswer() {
   // 错误状态
   if (error) {
     return (
-      <div className="rag-answer-container">
-        <div className="rag-answer-header">
-          <h2>智能问答助手</h2>
-          <p className="subtitle error">连接失败</p>
-        </div>
-        <div className="messages-container">
-          <div className="error-message">
-            <p>{error}</p>
-            <p className="error-hint">请检查参数是否正确，或联系管理员</p>
+      <div className="w-full h-full bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-4 bg-red-100 text-red-500">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
           </div>
+          <p className="text-sm text-[#1a1a1a] font-medium mb-1">{error}</p>
+          <p className="text-xs text-[#9ca3af]">请检查参数是否正确，或联系管理员</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="rag-answer-container">
-      <div className="rag-answer-header">
-        <h2>智能问答助手</h2>
-        <p className="subtitle">基于模型的知识问答系统</p>
-      </div>
-
-      <div className="messages-container">
-        <div className="messages-list">
-          {messages.map(message => (
-            <div
-              key={message.id}
-              className={`message-item ${message.isUser ? 'user-message' : 'ai-message'}`}
-            >
-              <div className="message-avatar">
-                {message.isUser ? '👤' : '🤖'}
-              </div>
-              <div className="message-content-wrapper">
-                <div className="message-header">
-                  <span className="message-sender">{message.isUser ? '你' : 'AI助手'}</span>
-                  <span className="message-time">{message.timestamp}</span>
-                </div>
-                <div className="message-bubble">{message.content}</div>
-              </div>
-            </div>
-          ))}
-
-          {isTyping && (
-            <div className="message-item ai-message">
-              <div className="message-avatar">🤖</div>
-              <div className="message-content-wrapper">
-                <div className="message-header">
-                  <span className="message-sender">AI助手</span>
-                </div>
-                <div className="message-bubble typing-indicator">
-                  <span></span>
-                  <span></span>
-                  <span></span>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div ref={messagesEndRef} />
-        </div>
-      </div>
-
-      <div className="input-container">
-        <div className="input-wrapper">
-          <textarea
-            className="message-input"
-            placeholder="输入你的问题..."
-            value={inputValue}
-            onChange={e => setInputValue(e.target.value)}
-            onKeyDown={handleKeyDown}
-            rows={1}
+    // 外层容器：居中 + 灰色背景
+    <div
+      className="w-full h-screen bg-[#f0f0f0] flex items-center justify-center
+        overflow-hidden p-0"
+    >
+      {/* 聊天容器：960px * 760px 居中 */}
+      <div
+        className="w-full max-w-[960px] h-[92vh] max-h-[760px] bg-white flex overflow-hidden
+          shadow-[0_20px_60px_rgba(0,0,0,0.08),0_1px_3px_rgba(0,0,0,0.04)]
+          rounded-2xl relative"
+      >
+        {/* Sidebar */}
+        <div
+          className={`md:flex transition-all duration-400 ${
+            showSidebar ? 'flex' : 'hidden md:flex'
+          } absolute md:relative inset-0 md:inset-auto z-20 md:z-auto
+          w-full md:w-auto bg-white md:bg-transparent`}
+        >
+          <ConversationList
+            conversations={conversations}
+            activeId={activeConversation}
+            onSelect={handleSelectConversation}
+            onNewChat={() => {}}
           />
-          <button
-            className={`send-button ${inputValue.trim() ? 'active' : ''}`}
-            onClick={handleSend}
-            disabled={!inputValue.trim()}
-          >
-            发送
-          </button>
         </div>
-        <div className="input-footer">
-          <span className="tip">按 Enter 发送，Shift + Enter 换行</span>
-        </div>
+
+        {/* Chat Main */}
+        <ChatMain
+          title={currentConv?.name || '模型助手'}
+          subtitle="基于训练模型的知识问答系统"
+          online={currentConv?.online}
+          messages={messages}
+          isTyping={isTyping}
+          inputValue={inputValue}
+          onInputChange={setInputValue}
+          onSend={handleSend}
+          onBack={() => setShowSidebar(true)}
+          showBack={!showSidebar}
+        />
       </div>
     </div>
   )

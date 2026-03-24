@@ -1,19 +1,7 @@
 import type * as React from 'react'
+import type { Model } from '../../utils/elysia'
 import { Link } from 'react-router'
 import useStore from '../../store'
-import type { Model } from '../../utils/elysia'
-
-interface TrainJSON {
-  answer: {
-    train: {
-      artifacts: {
-        ckpt_id: string
-        ckpt_uri: string
-        mlflow_run: string
-      }
-    }
-  }
-}
 
 const Products: React.FC = () => {
   const messages = useStore(state => state.messages)
@@ -37,7 +25,7 @@ const Products: React.FC = () => {
         {rags?.map((el, index) => (
           <Link
             key={el.id}
-            to={`/app/rag-answer/${el.indexVersion}`}
+            to={`/rag-answer/${el.indexVersion}`}
             className="flex items-center gap-2.5 p-2.5 rounded-lg hover:bg-blue-50 group transition-colors duration-150"
           >
             <span className="shrink-0 flex items-center justify-center w-5 h-5 text-xs font-semibold text-white bg-blue-500 rounded-full group-hover:bg-blue-600 transition-colors">
@@ -55,7 +43,7 @@ const Products: React.FC = () => {
         {models?.map((ele, index) => (
           <Link
             key={ele.id}
-            to={`/app/train-answer/${ele.externalId}/${sessionId}`}
+            to={`/train-answer/${ele.externalId}/${sessionId}`}
             className="flex items-center gap-2.5 p-2.5 rounded-lg hover:bg-blue-50 group transition-colors duration-150"
           >
             <span className="shrink-0 flex items-center justify-center w-5 h-5 text-xs font-semibold text-white bg-blue-500 rounded-full group-hover:bg-blue-600 transition-colors">

@@ -1,6 +1,7 @@
 import { createHashRouter, redirect } from 'react-router'
-import { authApi } from '@/api'
+// import { authApi } from '@/api'
 import Forbidden from '@/pages/Forbidden'
+import ModelList from '@/pages/ModelList'
 import NotFound from '@/pages/NotFound'
 import ServerError from '@/pages/ServerError'
 import { clearTokens } from './auth'
@@ -40,7 +41,7 @@ export const router = createHashRouter([
         path: 'logout',
         action: async () => {
           try {
-            await authApi.logout() // 通知后端
+            // await authApi.logout() // 通知后端
           }
           catch {
             // 忽略错误
@@ -49,6 +50,11 @@ export const router = createHashRouter([
           throw redirect('/login')
         },
       },
+
+      { path: 'rag-answer', element: <RagAnswer /> },
+      { path: 'rag-answer/:id', element: <RagAnswer /> },
+      { path: 'train-answer', element: <TrainAnswer /> },
+      { path: 'train-answer/:id/:sessionId', element: <TrainAnswer /> },
 
       // 受保护区域：只要进 /app 先跑 loader
       {
@@ -70,10 +76,8 @@ export const router = createHashRouter([
           },
           { path: 'settings', element: <Settings /> },
           { path: 'user-profile', element: <UserProfile /> },
-          { path: 'rag-answer', element: <RagAnswer /> },
-          { path: 'rag-answer/:id', element: <RagAnswer /> },
-          { path: 'train-answer', element: <TrainAnswer /> },
-          { path: 'train-answer/:id/:sessionId', element: <TrainAnswer /> },
+          { path: 'models', element: <ModelList /> },
+          { path: 'models/:sessionId', element: <ModelList /> },
         ],
       },
 

@@ -2,3 +2,4 @@
 // export * from '../out/message'
 // export * from '../out/session'
 export * from './auth'
+export * from './model'

@@ -252,5 +252,5 @@ export function hasRagBuildProgress(obj: any): obj is ApiResponseRagBuildIndex {
 }
 
 export function hasModelTrainProgress(obj: any): obj is ApoResponseModelTrainIndex {
-  return ('stage' in obj) && obj.stage === 'model-train'
+  return ('stage' in obj) && ['model-train', 'model-registered'].includes(obj.stage)
 }
