@@ -1,11 +1,13 @@
 import type * as React from 'react'
 import type { Message } from '@/components/Session/types'
+import type { RagConfig, TrainConfig } from './AdvancedSettings'
 import { FileText, Upload, X } from 'lucide-react'
 
 import { useRef, useState } from 'react'
 import { server } from '@/api/modules/session'
 import Model from '@/components/Model'
 import { useStore } from '@/components/Session/store'
+import AdvancedSettings, { defaultRagConfig, defaultTrainConfig } from './AdvancedSettings'
 
 const ModelTrain: React.FC<{ message: Message }> = ({ message }) => {
   const { sessionId } = useStore()
@@ -13,6 +15,8 @@ const ModelTrain: React.FC<{ message: Message }> = ({ message }) => {
   const [isOpen, setIsOpen] = useState(false)
   const [trainTitle, setTrainTitle] = useState('')
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
+  const [ragConfig, setRagConfig] = useState<RagConfig>(defaultRagConfig)
+  const [trainConfig, setTrainConfig] = useState<TrainConfig>(defaultTrainConfig)
 
   const handleModelTrain = () => {
     setIsOpen(true)
@@ -22,6 +26,8 @@ const ModelTrain: React.FC<{ message: Message }> = ({ message }) => {
     setIsOpen(false)
     setTrainTitle('')
     setSelectedFiles([])
+    setRagConfig(defaultRagConfig)
+    setTrainConfig(defaultTrainConfig)
   }
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -56,6 +62,8 @@ const ModelTrain: React.FC<{ message: Message }> = ({ message }) => {
         title: trainTitle,
         files: selectedFiles,
         message_id: message.id,
+        rag_cfg: ragConfig,
+        train_cfg: trainConfig,
       }).then(res => res.data).then((data) => {
         console.log(data)
         handleCloseModal()
@@ -92,9 +100,9 @@ const ModelTrain: React.FC<{ message: Message }> = ({ message }) => {
         overlayClassName="backdrop-blur-sm"
         contentClassName="!max-w-2xl !w-full !bg-white !shadow-2xl !border-0"
       >
-        <div className="space-y-6">
+        <div className="space-y-6 max-h-[70vh] overflow-y-auto">
           {/* 标题区域 */}
-          <div className="text-center">
+          <div className="text-center sticky top-0 bg-white pb-2">
             <h3 className="text-2xl font-bold text-slate-900 tracking-tight">
               模型训练
             </h3>
@@ -180,10 +188,18 @@ const ModelTrain: React.FC<{ message: Message }> = ({ message }) => {
                 </div>
               </div>
             )}
+
+            {/* 高级设置 */}
+            <AdvancedSettings
+              ragConfig={ragConfig}
+              trainConfig={trainConfig}
+              onRagConfigChange={setRagConfig}
+              onTrainConfigChange={setTrainConfig}
+            />
           </div>
 
           {/* 按钮组 */}
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 sticky bottom-0 bg-white">
             <button
               onClick={handleCloseModal}
               className="px-6 py-3 text-sm font-semibold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 hover:text-slate-900 transition-all duration-200 cursor-pointer"

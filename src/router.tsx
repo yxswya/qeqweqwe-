@@ -3,6 +3,7 @@ import { createHashRouter, redirect } from 'react-router'
 import Forbidden from '@/pages/Forbidden'
 import ModelList from '@/pages/ModelList'
 import NotFound from '@/pages/NotFound'
+import RagList from '@/pages/RagList'
 import ServerError from '@/pages/ServerError'
 import { clearTokens } from './auth'
 import AppLayout, { appLoader } from './layouts/AppLayout'
@@ -52,7 +53,7 @@ export const router = createHashRouter([
       },
 
       { path: 'rag-answer', element: <RagAnswer /> },
-      { path: 'rag-answer/:id', element: <RagAnswer /> },
+      { path: 'rag-answer/:id/:sessionId', element: <RagAnswer /> },
       { path: 'train-answer', element: <TrainAnswer /> },
       { path: 'train-answer/:id/:sessionId', element: <TrainAnswer /> },
 
@@ -78,6 +79,8 @@ export const router = createHashRouter([
           { path: 'user-profile', element: <UserProfile /> },
           { path: 'models', element: <ModelList /> },
           { path: 'models/:sessionId', element: <ModelList /> },
+          { path: 'rags', element: <RagList /> },
+          { path: 'rags/:sessionId', element: <RagList /> },
         ],
       },
 

@@ -2,7 +2,7 @@ import { Search, SquarePen } from 'lucide-react'
 import * as React from 'react'
 
 export interface Conversation {
-  id: number
+  id: number | string
   name: string
   avatar: string
   avatarClass: string
@@ -10,12 +10,14 @@ export interface Conversation {
   time: string
   unread?: number
   online?: boolean
+  // 扩展字段用于 RAG
+  indexVersion?: string
 }
 
 interface ConversationListProps {
   conversations: Conversation[]
-  activeId: number | null
-  onSelect: (id: number) => void
+  activeId: number | string | null
+  onSelect: (id: number | string) => void
   onNewChat?: () => void
 }
 

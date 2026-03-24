@@ -229,7 +229,32 @@ export interface ApiResponseRagBuildIndex {
 }
 
 export interface ApoResponseModelTrainIndex {
-  [key: string]: any
+  stage: 'model-train' | 'model-registered'
+  trainStage?: 1 | 2 | 3 | 4 | 5
+  status: 'pending' | 'success'
+  title: string
+  // Stage 1 & 2
+  modelCode?: string
+  method?: string
+  architecture?: string
+  // Stage 2
+  currentEpoch?: number
+  totalEpochs?: number
+  progress?: number
+  // Stage 3
+  outputSize?: string
+  fileLocation?: string
+  accuracy?: number
+  ragIndex?: string
+  elapsedMs?: number
+  // Stage 4
+  targetRegistry?: string
+  // Stage 5
+  modelId?: string
+  version?: string
+  inferEndpoint?: string
+  fileSize?: number
+  existsLocal?: boolean
 }
 
 export type ApiResponse = ApiResponseAnswer | ApiResponseIntent | ApiResponseRagBuildIndex | ApoResponseModelTrainIndex

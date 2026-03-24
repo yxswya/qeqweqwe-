@@ -18,6 +18,11 @@ const SideBar: React.FC = () => {
           </NavLink>
         </li>
         <li>
+          <NavLink to="/app/rags" className={linkClass}>
+            RAG 知识库
+          </NavLink>
+        </li>
+        <li>
           <NavLink to="/app/settings" className={linkClass}>
             设置
           </NavLink>

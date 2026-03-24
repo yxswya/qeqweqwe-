@@ -1,92 +1,124 @@
-import { useState } from 'react'
+import type { Conversation } from './components/ConversationList'
+import type { Message } from './components/MessageItem'
+import { useEffect, useState } from 'react'
 import { useParams } from 'react-router'
 import { server } from '@/api/modules/session'
 import ChatMain from './components/ChatMain'
-import ConversationList, { type Conversation } from './components/ConversationList'
-import type { Message } from './components/MessageItem'
+import ConversationList from './components/ConversationList'
 
-// 模拟会话列表
-const mockConversations: Conversation[] = [
-  {
-    id: 1,
-    name: 'AI 助手',
-    avatar: 'AI',
-    avatarClass: 'a1',
-    preview: '基于 RAG 技术的知识问答',
-    time: '2分钟前',
+// RAG 数据类型（从 API 返回）
+interface RagItem {
+  id: string
+  sessionId: string
+  title: string
+  messageId: string
+  indexVersion: string
+  content: string | null
+  createdAt: Date | null
+}
+
+// 将 RAG 数据转换为 Conversation 格式
+function ragToConversation(rag: RagItem, index: number): Conversation {
+  const avatarClasses = ['a1', 'a2', 'a3', 'a4', 'a5', 'a6']
+  const time = rag.createdAt
+    ? new Date(rag.createdAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+    : '刚刚'
+
+  return {
+    id: rag.id,
+    name: rag.title || `RAG ${index + 1}`,
+    avatar: rag.title?.charAt(0) || 'R',
+    avatarClass: avatarClasses[index % avatarClasses.length],
+    preview: `索引: ${rag.indexVersion.slice(0, 8)}...`,
+    time,
     online: true,
-  },
-  {
-    id: 2,
-    name: '技术支持',
-    avatar: '技',
-    avatarClass: 'a2',
-    preview: '有什么技术问题可以问我',
-    time: '28分钟前',
-    unread: 3,
-  },
-  {
-    id: 3,
-    name: '文档助手',
-    avatar: '文',
-    avatarClass: 'a3',
-    preview: '帮助你整理和分析文档',
-    time: '1小时前',
-  },
-]
-
-// 模拟消息数据
-const mockMessages: Message[] = [
-  {
-    id: 1,
-    content: '你好！我是智能助手，有什么可以帮助你的吗？',
-    isUser: false,
-    timestamp: '10:00',
-    status: 'read',
-  },
-  {
-    id: 2,
-    content: '请介绍一下什么是RAG技术？',
-    isUser: true,
-    timestamp: '10:01',
-    status: 'read',
-  },
-  {
-    id: 3,
-    content: 'RAG（Retrieval-Augmented Generation）是一种结合了检索和生成的AI技术。它通过从外部知识库中检索相关信息，然后利用这些信息来生成更准确、更具体的回答。',
-    isUser: false,
-    timestamp: '10:01',
-    status: 'read',
-  },
-  {
-    id: 4,
-    content: '那它有什么优势呢？',
-    isUser: true,
-    timestamp: '10:02',
-    status: 'read',
-  },
-  {
-    id: 5,
-    content: 'RAG的主要优势包括：1. 提供最新信息，不受训练数据时间限制；2. 减少幻觉，回答更可靠；3. 可以引用来源，增加可解释性；4. 领域知识定制，适用于特定行业。',
-    isUser: false,
-    timestamp: '10:02',
-    status: 'read',
-  },
-]
+    indexVersion: rag.indexVersion,
+  }
+}
 
 function RagAnswer() {
-  const params = useParams<{ id: string }>()
+  const params = useParams<{ id: string, sessionId: string }>()
+  const sessionId = params.sessionId
 
-  const [conversations] = useState(mockConversations)
-  const [activeConversation, setActiveConversation] = useState<number>(1)
-  const [messages, setMessages] = useState<Message[]>(mockMessages)
+  const [conversations, setConversations] = useState<Conversation[]>([])
+  const [activeConversation, setActiveConversation] = useState<number | string | null>(null)
+  const [messages, setMessages] = useState<Message[]>(() => [])
   const [inputValue, setInputValue] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const [showSidebar, setShowSidebar] = useState(true)
+  const [isLoading, setIsLoading] = useState(true)
+
+  // 生成欢迎消息
+  const createWelcomeMessage = (): Message => ({
+    id: Date.now(),
+    content: '你好！我是智能助手，有什么可以帮助你的吗？',
+    isUser: false,
+    timestamp: new Date().toLocaleTimeString('zh-CN', {
+      hour: '2-digit',
+      minute: '2-digit',
+    }),
+    status: 'read',
+  })
+
+  // 获取 RAG 列表
+  useEffect(() => {
+    async function fetchRagList() {
+      if (!sessionId) {
+        setIsLoading(false)
+        return
+      }
+
+      try {
+        const response = await server.api.v1.rag.local({ sessionId }).get()
+        if (response.data?.code === 0 && response.data.data) {
+          const ragList = response.data.data as RagItem[]
+          const convList = ragList.map((rag, index) => ragToConversation(rag, index))
+          setConversations(convList)
+
+          // 如果有 id 参数，选中对应的 RAG
+          if (params.id) {
+            const targetConv = convList.find(c => c.indexVersion === params.id)
+            if (targetConv) {
+              setActiveConversation(targetConv.id)
+              // 设置欢迎消息
+              setMessages([createWelcomeMessage()])
+            }
+          }
+          else if (convList.length > 0) {
+            // 默认选中第一个
+            setActiveConversation(convList[0].id)
+            // 设置欢迎消息
+            setMessages([createWelcomeMessage()])
+          }
+        }
+      }
+      catch (error) {
+        console.error('获取 RAG 列表失败:', error)
+      }
+      finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchRagList()
+  }, [sessionId, params.id])
 
   // 选择会话
-  const handleSelectConversation = (id: number) => {
+  const handleSelectConversation = (id: number | string) => {
     setActiveConversation(id)
+    // 清空消息，添加新的欢迎消息
+    setMessages([
+      {
+        id: Date.now(),
+        content: '你好！我是智能助手，有什么可以帮助你的吗？',
+        isUser: false,
+        timestamp: new Date().toLocaleTimeString('zh-CN', {
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+        status: 'read',
+      },
+    ])
     // 在移动端隐藏侧边栏
     if (window.innerWidth <= 768) {
       setShowSidebar(false)
@@ -96,6 +128,12 @@ function RagAnswer() {
   // 发送消息
   const handleSend = () => {
     if (inputValue.trim() === '')
+      return
+
+    const currentConv = conversations.find(c => c.id === activeConversation)
+    const indexVersion = currentConv?.indexVersion || params.id
+
+    if (!indexVersion)
       return
 
     const userMessage: Message = {
@@ -111,7 +149,7 @@ function RagAnswer() {
     setIsTyping(true)
 
     // 调用 API
-    server.api.v1.rag.chat({ index_version: String(params.id) }).post({
+    server.api.v1.rag.chat({ index_version: indexVersion }).post({
       text: inputValue,
     }).then((res) => {
       if (!res.data)
@@ -140,6 +178,22 @@ function RagAnswer() {
   // 获取当前会话信息
   const currentConv = conversations.find(c => c.id === activeConversation)
 
+  // 加载状态
+  if (isLoading) {
+    return (
+      <div className="w-full h-screen bg-[#f0f0f0] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-4 bg-[#e8e0f0] text-[#6b4c8a]">
+            <svg className="animate-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+            </svg>
+          </div>
+          <p className="text-sm text-[#6b7280]">正在加载 RAG 列表...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     // 外层容器：居中 + 灰色背景
     <div
@@ -152,34 +206,34 @@ function RagAnswer() {
           shadow-[0_20px_60px_rgba(0,0,0,0.08),0_1px_3px_rgba(0,0,0,0.04)]
           rounded-2xl relative"
       >
-      {/* Sidebar */}
-      <div
-        className={`md:flex transition-all duration-400 ${
-          showSidebar ? 'flex' : 'hidden md:flex'
-        } absolute md:relative inset-0 md:inset-auto z-20 md:z-auto
+        {/* Sidebar */}
+        <div
+          className={`md:flex transition-all duration-400 ${
+            showSidebar ? 'flex' : 'hidden md:flex'
+          } absolute md:relative inset-0 md:inset-auto z-20 md:z-auto
         w-full md:w-auto bg-white md:bg-transparent`}
-      >
-        <ConversationList
-          conversations={conversations}
-          activeId={activeConversation}
-          onSelect={handleSelectConversation}
-          onNewChat={() => {}}
-        />
-      </div>
+        >
+          <ConversationList
+            conversations={conversations}
+            activeId={activeConversation}
+            onSelect={handleSelectConversation}
+            onNewChat={() => {}}
+          />
+        </div>
 
-      {/* Chat Main */}
-      <ChatMain
-        title={currentConv?.name || 'AI 助手'}
-        subtitle="基于 RAG 技术的知识问答系统"
-        online={currentConv?.online}
-        messages={messages}
-        isTyping={isTyping}
-        inputValue={inputValue}
-        onInputChange={setInputValue}
-        onSend={handleSend}
-        onBack={() => setShowSidebar(true)}
-        showBack={!showSidebar}
-      />
+        {/* Chat Main */}
+        <ChatMain
+          title={currentConv?.name || 'RAG 助手'}
+          subtitle="基于 RAG 技术的知识问答系统"
+          online={currentConv?.online}
+          messages={messages}
+          isTyping={isTyping}
+          inputValue={inputValue}
+          onInputChange={setInputValue}
+          onSend={handleSend}
+          onBack={() => setShowSidebar(true)}
+          showBack={!showSidebar}
+        />
       </div>
     </div>
   )

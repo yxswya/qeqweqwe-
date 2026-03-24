@@ -122,25 +122,6 @@ export function renderMessageListItem(message: Message) {
       return (
         <div className="w-full">
           <Text content={content.workflow_hint.reason} />
-          {/* <h2 className="bg-red-500">{message.id}</h2> */}
-          {/* {
-            content.intent.actions.includes('ASK_MORE_INFO')
-            && content.intent.intent === 'train.start'
-            && (
-              <TrainToopit message={message} />
-            )
-          } */}
-
-          {/* {
-            content.intent.actions.includes('AGENT_CREATE')
-            && content.workflow_hint.stage === 'ready_for_agent_create'
-            && (
-              <>
-                <ComputeEstimateSummary data={mockData} />
-              </>
-            )
-          } */}
-
           {
             content.intent.actions.includes('RAG_BUILD_INDEX')
             && (
@@ -154,14 +135,6 @@ export function renderMessageListItem(message: Message) {
               <ModelTrain message={message} />
             )
           }
-          {/* <h1 className="bg-orange-500">
-            {content.intent.domain}
-            -
-            {content.intent.sub_intent}
-            -
-            {content.intent.actions}
-          </h1> */}
-          {/* <Actions actions={content.intent.actions} /> */}
         </div>
       )
     }
@@ -169,7 +142,33 @@ export function renderMessageListItem(message: Message) {
       return <RagBuildProgress title={content.title} status={content.status} />
     }
     else if (hasModelTrainProgress(content)) {
-      return <ModelTrainProgress title={content.title} status={content.status} />
+      // 使用 trainStage 字段，默认为 1
+      const trainStage = (content.trainStage ?? 1) as 1 | 2 | 3 | 4 | 5
+      return (
+        <ModelTrainProgress
+          title={content.title}
+          stage={trainStage}
+          data={{
+            modelCode: content.modelCode,
+            method: content.method,
+            architecture: content.architecture,
+            currentEpoch: content.currentEpoch,
+            totalEpochs: content.totalEpochs,
+            progress: content.progress,
+            outputSize: content.outputSize,
+            fileLocation: content.fileLocation,
+            accuracy: content.accuracy,
+            ragIndex: content.ragIndex,
+            elapsedMs: content.elapsedMs,
+            targetRegistry: content.targetRegistry,
+            modelId: content.modelId,
+            version: content.version,
+            inferEndpoint: content.inferEndpoint,
+            fileSize: content.fileSize,
+            existsLocal: content.existsLocal,
+          }}
+        />
+      )
     }
     else {
       console.log('存有无法识别的消息内容', message)
