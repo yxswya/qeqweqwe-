@@ -21,8 +21,8 @@ export default function AppLayout() {
       <TopBar />
       <div className="flex flex-1 overflow-hidden h-full">
         <SideBar />
-        <div className="w-0 flex-1 h-full relative bg-[#e8edfd]">
-          <img src="./会话组件-背景图片.svg" className="w-full h-full absolute top-0 left-0 pointer-events-none object-cover" alt="background" />
+        <div className="w-0 flex-1 h-full relative bg-[#f1f1f1]">
+          {/* <img src="./会话组件-背景图片.svg" className="w-full h-full absolute top-0 left-0 pointer-events-none object-cover" alt="background" /> */}
           <div className="w-full h-full relative z-2"><Outlet /></div>
         </div>
       </div>

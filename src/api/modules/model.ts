@@ -5,6 +5,7 @@ export interface Model {
   sessionId: string
   messageId: string
   trainId: string | null
+  ragId: string | null
   externalId: string
   modelUri: string
   task: string

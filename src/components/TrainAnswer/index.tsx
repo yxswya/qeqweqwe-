@@ -3,6 +3,24 @@ import { useParams } from 'react-router'
 import { server } from '@/api/modules/session'
 import { ChatMain, ConversationList, type Conversation, type Message } from './components'
 
+// 模型数据类型（从 API 返回）
+interface ModelItem {
+  id: string
+  sessionId: string
+  messageId: string
+  trainId: string | null
+  externalId: string
+  modelUri: string
+  task: string
+  modelType: string
+  note: string | null
+  existsLocal: boolean | null
+  fileSize: number | null
+  mtime: string | null
+  externalCreatedAt: string | null
+  createdAt: string | Date
+}
+
 interface ModelPredictResponse {
   code: number
   message: string
@@ -22,73 +40,103 @@ interface ModelPredictResponse {
   trace_id: string
 }
 
-// 模拟会话列表
-const mockConversations: Conversation[] = [
-  {
-    id: 1,
-    name: '模型助手',
-    avatar: '模',
-    avatarClass: 'a2',
-    preview: '基于训练模型的知识问答',
-    time: '刚刚',
-    online: true,
-  },
-  {
-    id: 2,
-    name: '推理服务',
-    avatar: '推',
-    avatarClass: 'a4',
-    preview: '高性能模型推理',
-    time: '10分钟前',
-    unread: 1,
-  },
-]
+// 将模型数据转换为 Conversation 格式
+function modelToConversation(model: ModelItem, index: number): Conversation {
+  const avatarClasses = ['a1', 'a2', 'a3', 'a4', 'a5', 'a6']
+  const createdAt = model.createdAt instanceof Date ? model.createdAt : new Date(model.createdAt)
+  const time = model.createdAt
+    ? createdAt.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+    : '刚刚'
+
+  // 从 modelUri 中提取模型名称
+  const modelName = model.modelUri.split('/').pop() || model.modelUri
+
+  return {
+    id: model.id,
+    name: model.note || modelName || `模型 ${index + 1}`,
+    avatar: (model.note || modelName)?.charAt(0) || '模',
+    avatarClass: avatarClasses[index % avatarClasses.length],
+    preview: `${model.task} - ${model.modelType}`,
+    time,
+    online: model.existsLocal ?? true,
+    externalId: model.externalId,
+    modelUri: model.modelUri,
+  }
+}
+
+// 生成欢迎消息
+function createWelcomeMessage(): Message {
+  return {
+    id: Date.now(),
+    content: '你好！我是智能助手，有什么可以帮助你的吗？',
+    isUser: false,
+    timestamp: new Date().toLocaleTimeString('zh-CN', {
+      hour: '2-digit',
+      minute: '2-digit',
+    }),
+    status: 'read',
+  }
+}
 
 function TrainAnswer() {
   const params = useParams<{ id: string, sessionId: string }>()
+  const sessionId = params.sessionId
 
-  const [conversations] = useState(mockConversations)
-  const [activeConversation, setActiveConversation] = useState<number>(1)
+  const [conversations, setConversations] = useState<Conversation[]>([])
+  const [activeConversation, setActiveConversation] = useState<number | string | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [inputValue, setInputValue] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [showSidebar, setShowSidebar] = useState(true)
 
-  // 初始化
+  // 获取模型列表
   useEffect(() => {
-    if (!params.id) {
-      setError('缺少 model_id 参数')
-      setIsLoading(false)
-      return
+    async function fetchModelList() {
+      if (!sessionId) {
+        setIsLoading(false)
+        return
+      }
+
+      try {
+        const response = await server.api.v1.model.local({ sessionId }).get()
+        if (response.data?.code === 0 && response.data.data) {
+          const modelList = response.data.data as ModelItem[]
+          const convList = modelList.map((model, index) => modelToConversation(model, index))
+          setConversations(convList)
+
+          // 如果有 id 参数，选中对应的模型
+          if (params.id) {
+            const targetConv = convList.find(c => c.id === params.id || c.externalId === params.id)
+            if (targetConv) {
+              setActiveConversation(targetConv.id)
+              setMessages([createWelcomeMessage()])
+            }
+          }
+          else if (convList.length > 0) {
+            // 默认选中第一个
+            setActiveConversation(convList[0].id)
+            setMessages([createWelcomeMessage()])
+          }
+        }
+      }
+      catch (error) {
+        console.error('获取模型列表失败:', error)
+      }
+      finally {
+        setIsLoading(false)
+      }
     }
 
-    if (!params.sessionId) {
-      setError('缺少 sessionId 参数')
-      setIsLoading(false)
-      return
-    }
-
-    // 添加欢迎消息
-    setMessages([
-      {
-        id: Date.now(),
-        content: '你好！我是智能助手，有什么可以帮助你的吗？',
-        isUser: false,
-        timestamp: new Date().toLocaleTimeString('zh-CN', {
-          hour: '2-digit',
-          minute: '2-digit',
-        }),
-        status: 'read',
-      },
-    ])
-    setIsLoading(false)
-  }, [params.id, params.sessionId])
+    fetchModelList()
+  }, [sessionId, params.id])
 
   // 选择会话
-  const handleSelectConversation = (id: number) => {
+  const handleSelectConversation = (id: number | string) => {
     setActiveConversation(id)
+    // 清空消息，添加新的欢迎消息
+    setMessages([createWelcomeMessage()])
+    // 在移动端隐藏侧边栏
     if (window.innerWidth <= 768) {
       setShowSidebar(false)
     }
@@ -96,7 +144,13 @@ function TrainAnswer() {
 
   // 发送消息
   const handleSend = async () => {
-    if (inputValue.trim() === '' || !params.id || !params.sessionId)
+    if (inputValue.trim() === '')
+      return
+
+    const currentConv = conversations.find(c => c.id === activeConversation)
+    const modelId = currentConv?.externalId || params.id
+
+    if (!modelId)
       return
 
     const userMessage: Message = {
@@ -117,7 +171,7 @@ function TrainAnswer() {
 
     try {
       const response = await server.api.v1.model.predict.post({
-        model_id: params.id,
+        model_id: modelId,
         prompt: currentInput,
         max_new_tokens: 256,
       })
@@ -183,33 +237,14 @@ function TrainAnswer() {
   // 加载状态
   if (isLoading) {
     return (
-      <div className="w-full h-full bg-white flex items-center justify-center">
+      <div className="w-full h-screen bg-[#f0f0f0] flex items-center justify-center">
         <div className="text-center">
           <div className="w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-4 bg-[#e8e0f0] text-[#6b4c8a]">
             <svg className="animate-spin" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M21 12a9 9 0 1 1-6.219-8.56" />
             </svg>
           </div>
-          <p className="text-sm text-[#6b7280]">正在连接模型服务...</p>
-        </div>
-      </div>
-    )
-  }
-
-  // 错误状态
-  if (error) {
-    return (
-      <div className="w-full h-full bg-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-4 bg-red-100 text-red-500">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="10" />
-              <line x1="12" y1="8" x2="12" y2="12" />
-              <line x1="12" y1="16" x2="12.01" y2="16" />
-            </svg>
-          </div>
-          <p className="text-sm text-[#1a1a1a] font-medium mb-1">{error}</p>
-          <p className="text-xs text-[#9ca3af]">请检查参数是否正确，或联系管理员</p>
+          <p className="text-sm text-[#6b7280]">正在加载模型列表...</p>
         </div>
       </div>
     )

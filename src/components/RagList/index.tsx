@@ -1,7 +1,7 @@
 import type { Rag } from '@/api/modules/rag'
-import { Database, FileText, Hash, Layers, Sparkles } from 'lucide-react'
+import { CheckCircle, Database, FileText, Hash, Layers, Sparkles } from 'lucide-react'
 import * as React from 'react'
-import { useNavigate } from 'react-router'
+import { useNavigate, useParams, useSearchParams } from 'react-router'
 import { ragApi } from '@/api/modules/rag'
 
 interface RagListProps {
@@ -14,7 +14,7 @@ function formatDate(dateStr: string | null): string {
   return new Date(dateStr).toLocaleString('zh-CN')
 }
 
-const RagCard: React.FC<{ rag: Rag }> = ({ rag }) => {
+const RagCard: React.FC<{ rag: Rag, isSelected?: boolean, isRelated?: boolean }> = ({ rag, isSelected, isRelated }) => {
   const navigate = useNavigate()
 
   const handleClick = () => {
@@ -23,13 +23,26 @@ const RagCard: React.FC<{ rag: Rag }> = ({ rag }) => {
 
   return (
     <div
-      className="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-md transition-shadow cursor-pointer"
+      className={`bg-white rounded-xl border p-5 hover:shadow-md transition-all cursor-pointer relative ${
+        isSelected
+          ? 'border-emerald-500 ring-2 ring-emerald-200 shadow-md'
+          : isRelated
+            ? 'border-blue-300 bg-blue-50/30'
+            : 'border-slate-200'
+      }`}
       onClick={handleClick}
     >
+      {isSelected && (
+        <div className="absolute top-3 right-3">
+          <CheckCircle className="w-5 h-5 text-emerald-500" />
+        </div>
+      )}
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
-            <Database className="w-5 h-5 text-emerald-600" />
+          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+            isSelected ? 'bg-emerald-500' : 'bg-emerald-100'
+          }`}>
+            <Database className={`w-5 h-5 ${isSelected ? 'text-white' : 'text-emerald-600'}`} />
           </div>
           <div>
             <h3 className="font-semibold text-slate-800 truncate max-w-50" title={rag.title}>
@@ -38,7 +51,9 @@ const RagCard: React.FC<{ rag: Rag }> = ({ rag }) => {
             <p className="text-xs text-slate-400">{rag.id}</p>
           </div>
         </div>
-        <span className="px-2 py-1 rounded-md text-xs font-medium bg-emerald-100 text-emerald-700">
+        <span className={`px-2 py-1 rounded-md text-xs font-medium ${
+          isSelected ? 'bg-emerald-500 text-white' : 'bg-emerald-100 text-emerald-700'
+        }`}>
           RAG
         </span>
       </div>
@@ -71,13 +86,21 @@ const RagCard: React.FC<{ rag: Rag }> = ({ rag }) => {
           创建于
           {formatDate(rag.createdAt)}
         </span>
-        <span className="text-emerald-500">点击查看</span>
+        <span className={isSelected ? 'text-emerald-600 font-medium' : isRelated ? 'text-blue-500' : 'text-emerald-500'}>
+          {isSelected ? '当前选中' : isRelated ? '关联会话' : '点击查看'}
+        </span>
       </div>
     </div>
   )
 }
 
-const RagList: React.FC<RagListProps> = ({ sessionId }) => {
+const RagList: React.FC<RagListProps> = ({ sessionId: propSessionId }) => {
+  const params = useParams<{ sessionId: string }>()
+  const [searchParams] = useSearchParams()
+  const routeSessionId = params.sessionId
+  const sessionId = propSessionId || routeSessionId
+  // 从 URL 参数获取要高亮的 RAG ID
+  const highlightRagId = searchParams.get('highlight')
   const [rags, setRags] = React.useState<Rag[]>([])
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState<string | null>(null)
@@ -86,6 +109,7 @@ const RagList: React.FC<RagListProps> = ({ sessionId }) => {
     const fetchRags = async () => {
       try {
         setLoading(true)
+        // 如果有 sessionId，只获取该会话的 RAG
         const response = sessionId
           ? await ragApi.getLocalRags(sessionId)
           : await ragApi.getAllRags()
@@ -139,7 +163,12 @@ const RagList: React.FC<RagListProps> = ({ sessionId }) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
       {rags.map(rag => (
-        <RagCard key={rag.id} rag={rag} />
+        <RagCard
+          key={rag.id}
+          rag={rag}
+          isSelected={highlightRagId ? rag.id === highlightRagId : false}
+          isRelated={sessionId ? rag.sessionId === sessionId && !highlightRagId : false}
+        />
       ))}
     </div>
   )

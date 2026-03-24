@@ -1,5 +1,6 @@
 import { createHashRouter, redirect } from 'react-router'
 // import { authApi } from '@/api'
+import CanvasPage from '@/pages/Canvas'
 import Forbidden from '@/pages/Forbidden'
 import ModelList from '@/pages/ModelList'
 import NotFound from '@/pages/NotFound'
@@ -56,6 +57,7 @@ export const router = createHashRouter([
       { path: 'rag-answer/:id/:sessionId', element: <RagAnswer /> },
       { path: 'train-answer', element: <TrainAnswer /> },
       { path: 'train-answer/:id/:sessionId', element: <TrainAnswer /> },
+      { path: 'canvas/:sessionId', element: <CanvasPage /> },
 
       // 受保护区域：只要进 /app 先跑 loader
       {

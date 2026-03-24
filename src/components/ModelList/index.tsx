@@ -1,30 +1,35 @@
 import type { Model } from '@/api/modules/model'
-import { modelApi } from '@/api/modules/model'
-import { Box, Cpu, FileCode, HardDrive, Sparkles } from 'lucide-react'
+import { Box, Cpu, Database, FileCode, HardDrive, Sparkles } from 'lucide-react'
 import * as React from 'react'
 import { useNavigate } from 'react-router'
+import { modelApi } from '@/api/modules/model'
 
 interface ModelListProps {
   sessionId?: string
 }
 
-const formatFileSize = (bytes: number | null): string => {
-  if (!bytes) return '-'
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+function formatFileSize(bytes: number | null): string {
+  if (!bytes)
+    return '-'
+  if (bytes < 1024)
+    return `${bytes} B`
+  if (bytes < 1024 * 1024)
+    return `${(bytes / 1024).toFixed(1)} KB`
+  if (bytes < 1024 * 1024 * 1024)
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
   return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`
 }
 
-const formatDate = (dateStr: string | null): string => {
-  if (!dateStr) return '-'
+function formatDate(dateStr: string | null): string {
+  if (!dateStr)
+    return '-'
   return new Date(dateStr).toLocaleString('zh-CN')
 }
 
 const taskTypeMap: Record<string, { label: string, color: string }> = {
-  chat: { label: '对话', color: 'bg-blue-100 text-blue-700' },
+  'chat': { label: '对话', color: 'bg-blue-100 text-blue-700' },
   'text-generation': { label: '文本生成', color: 'bg-purple-100 text-purple-700' },
-  classification: { label: '分类', color: 'bg-green-100 text-green-700' },
+  'classification': { label: '分类', color: 'bg-green-100 text-green-700' },
 }
 
 const ModelCard: React.FC<{ model: Model }> = ({ model }) => {
@@ -33,6 +38,17 @@ const ModelCard: React.FC<{ model: Model }> = ({ model }) => {
 
   const handleClick = () => {
     navigate(`/train-answer/${model.id}/${model.sessionId}`)
+  }
+
+  const handleViewRag = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    // 如果有关联的 RAG ID，直接高亮该 RAG
+    if (model.ragId) {
+      navigate(`/app/rags/${model.sessionId}?highlight=${model.ragId}`)
+    }
+    else {
+      navigate(`/app/rags/${model.sessionId}`)
+    }
   }
 
   return (
@@ -78,10 +94,23 @@ const ModelCard: React.FC<{ model: Model }> = ({ model }) => {
       </div>
 
       <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
-        <span>创建于 {formatDate(model.createdAt)}</span>
-        {model.trainId && (
-          <span className="text-indigo-500">关联训练</span>
-        )}
+        <span>
+          创建于
+          {formatDate(model.createdAt)}
+        </span>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleViewRag}
+            className="flex items-center gap-1 px-2 py-1 rounded-md bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors"
+          >
+            <Database className="w-3 h-3" />
+            <span>查看 RAG</span>
+          </button>
+          {model.trainId && (
+            <span className="text-indigo-500">关联训练</span>
+          )}
+        </div>
       </div>
     </div>
   )

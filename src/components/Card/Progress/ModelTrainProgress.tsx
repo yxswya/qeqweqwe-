@@ -1,7 +1,9 @@
 import type { ApoResponseModelTrainIndex } from '../../Session/types'
-
 import * as React from 'react'
+
 import { createPortal } from 'react-dom'
+import { useNavigate } from 'react-router'
+import useStore from '@/components/Session/store'
 
 /** 训练阶段类型 */
 export type TrainStage = 1 | 2 | 3 | 4 | 5
@@ -213,6 +215,8 @@ const ModelTrainProgress: React.FC<ModelTrainProgressProps> = ({ title, stage, d
   const colors = colorMap[config.color]
   const IconComponent = config.icon ? icons[config.icon] : null
   const progress = data.progress || 64
+  const navigator = useNavigate()
+  const sessionId = useStore(state => state.sessionId)
 
   const cardRef = React.useRef<HTMLDivElement>(null)
   const [isHovered, setIsHovered] = React.useState(false)
@@ -231,6 +235,8 @@ const ModelTrainProgress: React.FC<ModelTrainProgressProps> = ({ title, stage, d
   }
 
   const handleUseModel = () => {
+    console.log(title, stage, data)
+    navigator(`/train-answer/${data.modelId}/${sessionId}`)
     console.log('Navigate to model inference page')
   }
 
@@ -465,22 +471,6 @@ const ModelTrainProgress: React.FC<ModelTrainProgressProps> = ({ title, stage, d
                 </p>
               </div>
             </div>
-            <div className="mt-4 pt-4 border-t border-slate-100 flex items-center gap-3">
-              <button
-                type="button"
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
-              >
-                <icons.Copy className="w-3.5 h-3.5" />
-                复制 ID
-              </button>
-              <button
-                type="button"
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
-              >
-                <icons.Terminal className="w-3.5 h-3.5" />
-                测试接口
-              </button>
-            </div>
           </div>
         )
       default:
@@ -583,7 +573,7 @@ const ModelTrainProgress: React.FC<ModelTrainProgressProps> = ({ title, stage, d
         >
           {renderDetailContent()}
         </div>,
-        document.body
+        document.body,
       )}
     </>
   )

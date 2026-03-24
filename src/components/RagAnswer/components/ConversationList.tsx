@@ -12,6 +12,9 @@ export interface Conversation {
   online?: boolean
   // 扩展字段用于 RAG
   indexVersion?: string
+  // 扩展字段用于 Train
+  modelUri?: string
+  externalId?: string
 }
 
 interface ConversationListProps {

@@ -1,14 +1,17 @@
 import type { ApiResponse } from '../types'
 import type { StepItem } from './WorkFlow/ProgressDisplay'
-import { Bell, Settings, Workflow } from 'lucide-react'
+import { Bell, GitBranch, Settings, Workflow } from 'lucide-react'
 import { useStore } from '@/components/Session/store'
 import Tabs from '@/components/Tabs'
 import { hasAnswer, hasIntent } from '../types'
 import { GovUploadFile } from './WorkFlow/GovUploadFile'
 import Products from './WorkFlow/Products'
 import ProgressDisplay from './WorkFlow/ProgressDisplay'
+import { useNavigate } from 'react-router'
 
 function Plane() {
+  const navigate = useNavigate()
+  const sessionId = useStore(state => state.sessionId)
   const messages = useStore(state => state.messages)
   const datas: StepItem[] = messages.filter(msg => msg.senderId === 'system-bot-id').map((msg) => {
     if (msg.type === 'json') {
@@ -28,6 +31,12 @@ function Plane() {
       return { label: '意图识别中...', id: msg.id, status: 'failed' }
     }
   })
+
+  const handleViewCanvas = () => {
+    if (sessionId) {
+      navigate(`/canvas/${sessionId}`)
+    }
+  }
 
   const tabs = [
     {
@@ -66,7 +75,23 @@ function Plane() {
     },
   ]
 
-  return <Tabs tabs={tabs} className="border-t border-gray-200 h-full flex flex-col" />
+  return (
+    <div className="border-t border-gray-200 h-full flex flex-col">
+      {/* 查看图谱按钮 */}
+      <div className="px-4 py-3 border-b border-gray-100">
+        <button
+          type="button"
+          onClick={handleViewCanvas}
+          disabled={!sessionId}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-linear-to-r from-blue-500 to-indigo-500 text-white rounded-lg hover:from-blue-600 hover:to-indigo-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+        >
+          <GitBranch size={16} />
+          <span>查看会话图谱</span>
+        </button>
+      </div>
+      <Tabs tabs={tabs} className="flex-1 flex flex-col" />
+    </div>
+  )
 }
 
 export default Plane
