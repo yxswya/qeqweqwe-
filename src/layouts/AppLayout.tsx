@@ -11,7 +11,6 @@ export async function appLoader({ request }: { request: Request }) {
 
   // 获取用户信息（每次进入 /app 时）
   const user = (await authApi.getCurrentUser()).data
-
   return { user }
 }
 

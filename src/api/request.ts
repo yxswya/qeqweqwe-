@@ -82,33 +82,40 @@ request.interceptors.response.use(
 
     // ========== 401 未授权：清 token + 跳登录 ==========
     if (response?.status === 401) {
+      // 如果已经在登录页，不要再次跳转
+      if (window.location.pathname === '/login') {
+        return Promise.reject(error)
+      }
+
       clearTokens()
 
-      // 获取当前路径，登录后跳回
-      const redirectTo = window.location.pathname + window.location.search
-      const params = new URLSearchParams()
-      params.set('redirectTo', redirectTo)
-      redirect(`/login?${params.toString()}`)
+      // 获取当前路径，登录后跳回（排除登录页本身和错误页面）
+      const currentPath = window.location.pathname
+      if (currentPath !== '/login' && !currentPath.startsWith('/40') && !currentPath.startsWith('/50')) {
+        const redirectTo = currentPath + window.location.search
+        const params = new URLSearchParams()
+        params.set('redirectTo', redirectTo)
+        window.location.href = `/login?${params.toString()}`
+      }
 
       return Promise.reject(error)
     }
 
     // ========== 403 无权限 ==========
     if (response?.status === 403) {
-      // 跳到无权限页
-      window.location.href = '/403'
+      console.error('[403 Forbidden]', config?.url)
+      return Promise.reject(error)
     }
 
     // ========== 500 服务器错误 ==========
     if (response?.status && response.status >= 500) {
-      // 跳到服务器错误页
-      window.location.href = '/500'
+      console.error('[500 Server Error]', config?.url, response?.data)
+      return Promise.reject(error)
     }
 
     // ========== 网络错误 ==========
     if (!response) {
       console.error('[Network Error]', error.message)
-      // toast.error("网络异常，请检查网络连接");
     }
 
     return Promise.reject(error)

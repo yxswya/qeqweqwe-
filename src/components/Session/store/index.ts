@@ -103,7 +103,7 @@ export const useStore = create<{
     set({
       messages: [],
       status: 'input',
-      sessionId: undefined,
+      sessionId: '',
       clarificationQuestions: [],
     })
   },
@@ -200,6 +200,7 @@ export const useStore = create<{
 
     if (!sessionId) {
       clearSession()
+      return
     }
 
     const response = await getSessionMessages(sessionId)

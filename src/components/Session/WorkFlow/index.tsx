@@ -17,13 +17,10 @@ const WorkFlow: React.FC = () => {
   useEffect(() => {
     const prevId = prevIdRef.current // 旧的 id
 
-    if (prevId !== sessionId) {
-      if (sessionId) {
-        navigate(`/app/dashboard/${sessionId}`)
-      }
-      else {
-        navigate(`/app/dashboard`)
-      }
+    // 只有当 sessionId 从无到有变化时才导航
+    // 避免空值导致的无限循环
+    if (prevId !== sessionId && sessionId) {
+      navigate(`/app/dashboard/${sessionId}`)
     }
 
     prevIdRef.current = sessionId

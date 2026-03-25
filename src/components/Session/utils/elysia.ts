@@ -46,8 +46,8 @@ export interface FileResponse {
 
 export interface SessionResponse {
   id: string
-  title: string
-  isGroup: boolean
+  userId: string
+  title: string | null
   lastMessageAt: string
   createdAt: string
   messages: MessageResponse[]
