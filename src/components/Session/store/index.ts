@@ -290,13 +290,17 @@ export const useStore = create<{
   parseContent(response: string) {
     const { setSessionStatus, addMessage } = get()
 
-    // SSE 消息格式: { type: "message", data: { type: "user_message" | "bot_message", message: {...} }, timestamp: ... }
-    const sseData = JSON.parse(response) as { type: string, data: { type: string, message: MessageResponse }, timestamp: number }
+    // SSE 消息格式: { type: "message" | "governance_created" | "rag_created" | "model_created", data: {...}, timestamp: ... }
+    const sseData = JSON.parse(response) as { type: string, data: any, timestamp: number }
 
     if (sseData.type === 'message' && sseData.data?.message) {
       const message = sseData.data.message
       setSessionStatus(message)
       addMessage(message)
+    }
+    // 触发自定义事件，让其他组件可以监听
+    if (sseData.type === 'governance_created' || sseData.type === 'rag_created' || sseData.type === 'model_created') {
+      window.dispatchEvent(new CustomEvent(sseData.type, { detail: sseData.data }))
     }
   },
 }))

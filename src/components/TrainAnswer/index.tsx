@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
-import { useParams } from 'react-router'
+import type { Conversation, Message } from './components'
+import { useCallback, useEffect, useState } from 'react'
+import { useNavigate, useParams } from 'react-router'
 import { server } from '@/api/modules/session'
-import { ChatMain, ConversationList, type Conversation, type Message } from './components'
+import { ChatMain, ConversationList } from './components'
 
 // 模型使用提示
 interface UsageHint {
@@ -114,6 +115,7 @@ function createWelcomeMessage(): Message {
 
 function TrainAnswer() {
   const params = useParams<{ id: string, sessionId: string }>()
+  const navigate = useNavigate()
   const sessionId = params.sessionId
 
   const [conversations, setConversations] = useState<Conversation[]>([])
@@ -124,64 +126,78 @@ function TrainAnswer() {
   const [isLoading, setIsLoading] = useState(true)
   const [showSidebar, setShowSidebar] = useState(true)
 
-  // 获取模型列表
-  useEffect(() => {
-    async function fetchModelList() {
-      if (!sessionId) {
-        setIsLoading(false)
-        return
-      }
+  // 获取模型列表的函数
+  const fetchModelList = useCallback(async () => {
+    if (!sessionId) {
+      setIsLoading(false)
+      return
+    }
 
-      try {
-        // 使用新的 API 路径 GET /model/list/:sessionId
-        const response = await server.api.v1.model.list({ sessionId }).get()
-        if (response.data) {
-          const modelList = response.data as ModelItem[]
-          // 过滤掉解析失败的模型项
-          const convList = modelList
-            .map((model, index) => modelToConversation(model, index))
-            .filter((c): c is Conversation => c !== null)
-          setConversations(convList)
+    try {
+      // 使用 API 路径 GET /model/session/:sessionId
+      const response = await server.api.v1.model.list.get()
+      if (response.data) {
+        const modelList = response.data as ModelItem[]
+        // 过滤掉解析失败的模型项
+        const convList = modelList
+          .map((model, index) => modelToConversation(model, index))
+          .filter((c): c is Conversation => c !== null)
+        setConversations(convList)
 
-          // 如果有 id 参数，选中对应的模型（通过 id 匹配）
-          if (params.id) {
-            const targetConv = convList.find(c => c.id === params.id)
-            if (targetConv) {
-              setActiveConversation(targetConv.id)
-              setMessages([createWelcomeMessage()])
-            }
-            else if (convList.length > 0) {
-              // 如果没找到匹配的，默认选中第一个
-              setActiveConversation(convList[0].id)
-              setMessages([createWelcomeMessage()])
-            }
+        // 如果有 id 参数，选中对应的模型（通过 id 匹配）
+        if (params.id) {
+          const targetConv = convList.find(c => c.id === params.id)
+          if (targetConv) {
+            setActiveConversation(targetConv.id)
+            setMessages([createWelcomeMessage()])
           }
           else if (convList.length > 0) {
-            // 默认选中第一个
+            // 如果没找到匹配的，默认选中第一个
             setActiveConversation(convList[0].id)
             setMessages([createWelcomeMessage()])
           }
         }
-      }
-      catch (error) {
-        console.error('获取模型列表失败:', error)
-      }
-      finally {
-        setIsLoading(false)
+        else if (convList.length > 0 && !activeConversation) {
+          // 默认选中第一个（仅当没有选中项时）
+          setActiveConversation(convList[0].id)
+          setMessages([createWelcomeMessage()])
+        }
       }
     }
+    catch (error) {
+      console.error('获取模型列表失败:', error)
+    }
+    finally {
+      setIsLoading(false)
+    }
+  }, [sessionId, params.id, activeConversation])
 
+  // 初始加载模型列表
+  useEffect(() => {
     fetchModelList()
-  }, [sessionId, params.id])
+  }, [])
+
+  // 监听 model_created 事件，刷新列表
+  useEffect(() => {
+    const handleModelCreated = () => {
+      console.log('收到 model_created 事件，刷新列表')
+      fetchModelList()
+    }
+
+    window.addEventListener('model_created', handleModelCreated)
+    return () => {
+      window.removeEventListener('model_created', handleModelCreated)
+    }
+  }, [fetchModelList])
 
   // 选择会话
   const handleSelectConversation = (id: number | string) => {
     setActiveConversation(id)
     // 清空消息，添加新的欢迎消息
     setMessages([createWelcomeMessage()])
-    // 在移动端隐藏侧边栏
-    if (window.innerWidth <= 768) {
-      setShowSidebar(false)
+    // 更新地址栏 URL
+    if (sessionId) {
+      navigate(`/train-answer/${sessionId}/${id}`)
     }
   }
 

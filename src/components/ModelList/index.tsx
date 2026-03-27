@@ -18,8 +18,8 @@ const ModelCard: React.FC<{ model: Model }> = ({ model }) => {
   const navigate = useNavigate()
 
   const handleClick = () => {
-    // 使用 messageId 作为路由参数
-    navigate(`/train-answer/${model.id}`)
+    // 使用 sessionId 和 model.id 作为路由参数
+    navigate(`/train-answer/${model.sessionId}/${model.id}`)
   }
 
   return (

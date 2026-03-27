@@ -1,7 +1,7 @@
 import type { Conversation } from './components/ConversationList'
 import type { Message } from './components/MessageItem'
-import { useEffect, useState } from 'react'
-import { useParams } from 'react-router'
+import { useCallback, useEffect, useState } from 'react'
+import { useNavigate, useParams } from 'react-router'
 import { server } from '@/api/modules/session'
 import ChatMain from './components/ChatMain'
 import ConversationList from './components/ConversationList'
@@ -90,6 +90,7 @@ function ragToConversation(rag: RagItem, index: number): Conversation | null {
 
 function RagAnswer() {
   const params = useParams<{ id: string, sessionId: string }>()
+  const navigate = useNavigate()
   const sessionId = params.sessionId
 
   const [conversations, setConversations] = useState<Conversation[]>([])
@@ -112,57 +113,72 @@ function RagAnswer() {
     status: 'read',
   })
 
-  // 获取 RAG 列表
-  useEffect(() => {
-    async function fetchRagList() {
-      if (!sessionId) {
-        setIsLoading(false)
-        return
-      }
+  // 获取 RAG 列表的函数
+  const fetchRagList = useCallback(async () => {
+    console.log('Fetching RAG list for session:', sessionId)
+    if (!sessionId) {
+      setIsLoading(false)
+      return
+    }
 
-      try {
-        // 使用新的 API 路径 GET /rag/list/:sessionId
-        const response = await server.api.v1.rag.list({ sessionId }).get()
-        if (response.data) {
-          const ragList = response.data as RagItem[]
-          // 过滤掉解析失败的 RAG 项
-          const convList = ragList
-            .map((rag, index) => ragToConversation(rag, index))
-            .filter((c): c is Conversation => c !== null)
-          setConversations(convList)
+    try {
+      // 使用新的 API 路径 GET /rag/list/:sessionId
+      const response = await server.api.v1.rag.list.get()
+      if (response.data) {
+        const ragList = response.data as RagItem[]
+        // 过滤掉解析失败的 RAG 项
+        const convList = ragList
+          .map((rag, index) => ragToConversation(rag, index))
+          .filter((c): c is Conversation => c !== null)
+        setConversations(convList)
 
-          // 如果有 id 参数，选中对应的 RAG（通过 id 匹配）
-          if (params.id) {
-            const targetConv = convList.find(c => c.id === params.id)
-            if (targetConv) {
-              setActiveConversation(targetConv.id)
-              // 设置欢迎消息
-              setMessages([createWelcomeMessage()])
-            }
-            else if (convList.length > 0) {
-              // 如果没找到匹配的，默认选中第一个
-              setActiveConversation(convList[0].id)
-              setMessages([createWelcomeMessage()])
-            }
-          }
-          else if (convList.length > 0) {
-            // 默认选中第一个
-            setActiveConversation(convList[0].id)
+        // 如果有 id 参数，选中对应的 RAG（通过 id 匹配）
+        if (params.id) {
+          const targetConv = convList.find(c => c.id === params.id)
+          if (targetConv) {
+            setActiveConversation(targetConv.id)
             // 设置欢迎消息
             setMessages([createWelcomeMessage()])
           }
+          else if (convList.length > 0) {
+            // 如果没找到匹配的，默认选中第一个
+            setActiveConversation(convList[0].id)
+            setMessages([createWelcomeMessage()])
+          }
+        }
+        else if (convList.length > 0 && !activeConversation) {
+          // 默认选中第一个（仅当没有选中项时）
+          setActiveConversation(convList[0].id)
+          // 设置欢迎消息
+          setMessages([createWelcomeMessage()])
         }
       }
-      catch (error) {
-        console.error('获取 RAG 列表失败:', error)
-      }
-      finally {
-        setIsLoading(false)
-      }
+    }
+    catch (error) {
+      console.error('获取 RAG 列表失败:', error)
+    }
+    finally {
+      setIsLoading(false)
+    }
+  }, [sessionId, params.id, activeConversation])
+
+  // 初始加载 RAG 列表
+  useEffect(() => {
+    fetchRagList()
+  }, [])
+
+  // 监听 rag_created 事件，刷新列表
+  useEffect(() => {
+    const handleRagCreated = () => {
+      console.log('收到 rag_created 事件，刷新列表')
+      fetchRagList()
     }
 
-    fetchRagList()
-  }, [sessionId, params.id])
+    window.addEventListener('rag_created', handleRagCreated)
+    return () => {
+      window.removeEventListener('rag_created', handleRagCreated)
+    }
+  }, [fetchRagList])
 
   // 选择会话
   const handleSelectConversation = (id: number | string) => {
@@ -180,9 +196,9 @@ function RagAnswer() {
         status: 'read',
       },
     ])
-    // 在移动端隐藏侧边栏
-    if (window.innerWidth <= 768) {
-      setShowSidebar(false)
+    // 更新地址栏 URL
+    if (sessionId) {
+      navigate(`/rag-answer/${sessionId}/${id}`)
     }
   }
 
