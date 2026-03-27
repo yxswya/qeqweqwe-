@@ -1,9 +1,16 @@
-import { http } from '@/api'
+import { server } from '@/api/modules/session'
 
-export interface Success<T> {
-  code: number
-  data: T
-  message: string
+// 后端返回的用户信息
+export interface User {
+  id: string
+  username: string
+  email: string | null
+}
+
+// 后端返回的登录/注册响应
+export interface AuthResponse {
+  token: string
+  user: User
 }
 
 export interface LoginParams {
@@ -13,44 +20,25 @@ export interface LoginParams {
 
 export interface RegisterParams {
   username: string
-  email: string
   password: string
-}
-
-export interface LoginResult {
-  access_token: string
-  refresh_token: string
-  username: string
-  token_type: string
-}
-
-export interface UserInfo {
-  id: string
-  username: string
-  email: null | string
-  avatarUrl: null | string
-  createdAt: string
-}
-
-export interface RefreshTokenParams {
-  refresh_token: string
-}
-
-export interface RefreshTokenResult {
-  access_token: string
-  refresh_token?: string
+  email?: string
 }
 
 export const authApi = {
-  login: (params: LoginParams) =>
-    http.post<Success<LoginResult>>('/auth/login', params),
+  // 登录 - 后端 POST /auth/sign-in
+  login: async (params: LoginParams): Promise<AuthResponse> => {
+    const response = await server.api.v1.auth['sign-in'].post(params)
+    return response.data as AuthResponse
+  },
 
-  register: (params: RegisterParams) =>
-    http.post<Success<LoginResult>>('/auth/register', params),
+  // 注册 - 后端 POST /auth/sign-up
+  register: async (params: RegisterParams): Promise<AuthResponse> => {
+    const response = await server.api.v1.auth['sign-up'].post(params)
+    return response.data as AuthResponse
+  },
 
-  getCurrentUser: () =>
-    http.get<Success<UserInfo>>('/auth/me'),
-
-  refreshToken: (params: RefreshTokenParams) =>
-    http.post<Success<RefreshTokenResult>>('/auth/refresh', params),
+  // 登出 - 后端 POST /auth/sign-out
+  signOut: async (): Promise<void> => {
+    await server.api.v1.auth['sign-out'].post()
+  },
 }

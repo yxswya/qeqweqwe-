@@ -69,9 +69,10 @@ function RagAnswer() {
       }
 
       try {
-        const response = await server.api.v1.rag.local({ sessionId }).get()
-        if (response.data?.code === 0 && response.data.data) {
-          const ragList = response.data.data as RagItem[]
+        // 使用新的 API 路径 GET /rag/list/:sessionId
+        const response = await server.api.v1.rag.list({ sessionId }).get()
+        if (response.data) {
+          const ragList = response.data as RagItem[]
           const convList = ragList.map((rag, index) => ragToConversation(rag, index))
           setConversations(convList)
 

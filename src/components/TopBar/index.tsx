@@ -1,4 +1,3 @@
-import type { UserInfo } from '@/api'
 import {
   Bell,
   ChevronDown,
@@ -12,18 +11,13 @@ import {
 } from 'lucide-react'
 import * as React from 'react'
 import { useEffect, useRef, useState } from 'react'
-import { Form, Link, useRouteLoaderData } from 'react-router'
+import { Form, Link } from 'react-router'
 
+import { getUserInfo } from '@/auth'
 import SwitchSession from '@/components/Session/Message/SwitchSession.tsx'
 
-// loader 返回类型
-export interface AppLoaderData {
-  user: UserInfo
-}
-
 const TopBar: React.FC = () => {
-  // 读取 /app 路由的 loader 返回数据（需给路由配 id）
-  const data = useRouteLoaderData('app') as AppLoaderData
+  const [userInfo, setUserInfo] = useState(() => getUserInfo() || { username: '用户', email: null, role: '普通用户' })
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -77,7 +71,7 @@ const TopBar: React.FC = () => {
               className="w-8 h-8 rounded object-cover"
             />
             <span className="text-sm font-medium text-gray-700">
-              {data.user.username}
+              {userInfo.username}
             </span>
             <ChevronDown
               size={14}
@@ -112,13 +106,13 @@ const TopBar: React.FC = () => {
                   />
                   <div className="min-w-0 flex-1">
                     <h3 className="text-base font-bold text-white truncate">
-                      {data.user.username}
+                      {userInfo.username}
                     </h3>
                     <p className="text-xs text-transparent bg-clip-text bg-linear-to-r from-indigo-300 to-purple-300 font-semibold mt-0.5">
-                      {data.user.role}
+                      {userInfo.role || '普通用户'}
                     </p>
                     <p className="text-xs text-slate-400 truncate mt-1">
-                      {data.user.email}
+                      {userInfo.email || '未设置邮箱'}
                     </p>
                   </div>
                 </div>

@@ -1,5 +1,5 @@
 import type { Rag } from '@/api/modules/rag'
-import { CheckCircle, Database, FileText, Hash, Layers, Sparkles } from 'lucide-react'
+import { CheckCircle, Database, FileText, Sparkles } from 'lucide-react'
 import * as React from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router'
 import { ragApi } from '@/api/modules/rag'
@@ -8,17 +8,18 @@ interface RagListProps {
   sessionId?: string
 }
 
-function formatDate(dateStr: string | null): string {
-  if (!dateStr)
+function formatDate(date: Date | null): string {
+  if (!date)
     return '-'
-  return new Date(dateStr).toLocaleString('zh-CN')
+  return new Date(date).toLocaleString('zh-CN')
 }
 
-const RagCard: React.FC<{ rag: Rag, isSelected?: boolean, isRelated?: boolean }> = ({ rag, isSelected, isRelated }) => {
+const RagCard: React.FC<{ rag: Rag, isSelected?: boolean }> = ({ rag, isSelected }) => {
   const navigate = useNavigate()
 
   const handleClick = () => {
-    navigate(`/rag-answer/${rag.indexVersion}/${rag.sessionId}`)
+    // 使用 rag.id 作为路由参数
+    navigate(`/rag-answer/${rag.id}`)
   }
 
   return (
@@ -26,9 +27,7 @@ const RagCard: React.FC<{ rag: Rag, isSelected?: boolean, isRelated?: boolean }>
       className={`bg-white rounded-xl border p-5 hover:shadow-md transition-all cursor-pointer relative ${
         isSelected
           ? 'border-emerald-500 ring-2 ring-emerald-200 shadow-md'
-          : isRelated
-            ? 'border-blue-300 bg-blue-50/30'
-            : 'border-slate-200'
+          : 'border-slate-200'
       }`}
       onClick={handleClick}
     >
@@ -60,23 +59,10 @@ const RagCard: React.FC<{ rag: Rag, isSelected?: boolean, isRelated?: boolean }>
 
       <div className="space-y-3">
         <div className="flex items-center gap-2 text-sm text-slate-600">
-          <Hash className="w-4 h-4 text-slate-400" />
-          <span className="truncate font-mono text-xs" title={rag.indexVersion}>{rag.indexVersion}</span>
-        </div>
-
-        <div className="flex items-center gap-2 text-sm text-slate-600">
           <FileText className="w-4 h-4 text-slate-400" />
           <span className="truncate">
             消息 ID:
             {rag.messageId}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-2 text-sm text-slate-600">
-          <Layers className="w-4 h-4 text-slate-400" />
-          <span>
-            会话:
-            {rag.sessionId}
           </span>
         </div>
       </div>
@@ -86,8 +72,8 @@ const RagCard: React.FC<{ rag: Rag, isSelected?: boolean, isRelated?: boolean }>
           创建于
           {formatDate(rag.createdAt)}
         </span>
-        <span className={isSelected ? 'text-emerald-600 font-medium' : isRelated ? 'text-blue-500' : 'text-emerald-500'}>
-          {isSelected ? '当前选中' : isRelated ? '关联会话' : '点击查看'}
+        <span className={isSelected ? 'text-emerald-600 font-medium' : 'text-emerald-500'}>
+          {isSelected ? '当前选中' : '点击查看'}
         </span>
       </div>
     </div>
@@ -109,16 +95,11 @@ const RagList: React.FC<RagListProps> = ({ sessionId: propSessionId }) => {
     const fetchRags = async () => {
       try {
         setLoading(true)
-        // 如果有 sessionId，只获取该会话的 RAG
-        const response = sessionId
-          ? await ragApi.getLocalRags(sessionId)
+        // 使用新的 API 方法
+        const data = sessionId
+          ? await ragApi.getRagsBySessionId(sessionId)
           : await ragApi.getAllRags()
-        if (response.code === 0) {
-          setRags(response.data)
-        }
-        else {
-          setError(response.message)
-        }
+        setRags(data)
       }
       catch (err) {
         setError((err as Error).message)
@@ -167,7 +148,6 @@ const RagList: React.FC<RagListProps> = ({ sessionId: propSessionId }) => {
           key={rag.id}
           rag={rag}
           isSelected={highlightRagId ? rag.id === highlightRagId : false}
-          isRelated={sessionId ? rag.sessionId === sessionId && !highlightRagId : false}
         />
       ))}
     </div>

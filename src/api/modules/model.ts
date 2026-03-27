@@ -1,33 +1,38 @@
-import { http } from '@/api'
+import { server } from '@/api/modules/session'
 
+// 后端返回的模型数据结构
 export interface Model {
   id: string
-  sessionId: string
+  title: string
   messageId: string
-  trainId: string | null
-  ragId: string | null
-  externalId: string
-  modelUri: string
-  task: string
-  modelType: string
-  note: string | null
-  existsLocal: boolean | null
-  fileSize: number | null
-  mtime: string | null
-  externalCreatedAt: string | null
-  createdAt: string
-}
-
-export interface ModelListResponse {
-  code: number
-  message: string
-  data: Model[]
+  content: string
+  deletedAt: Date | null
+  createdAt: Date
+  updatedAt: Date
 }
 
 export const modelApi = {
-  getLocalModels: (sessionId: string) =>
-    http.get<ModelListResponse>(`/model/local/${sessionId}`),
+  // 获取所有模型列表 - 后端 GET /model/list
+  getAllModels: async (): Promise<Model[]> => {
+    const response = await server.api.v1.model.list.get()
+    return (response.data || []) as Model[]
+  },
 
-  getAllModels: () =>
-    http.get<ModelListResponse>('/model/all'),
+  // 根据会话ID获取模型列表 - 后端 GET /model/list/:sessionId
+  getModelsBySessionId: async (sessionId: string): Promise<Model[]> => {
+    const response = await server.api.v1.model.list({ sessionId }).get()
+    return (response.data || []) as Model[]
+  },
+
+  // 获取模型推荐 - 后端 GET /model/recommend
+  getRecommendations: async () => {
+    const response = await server.api.v1.model.recommend.get()
+    return response.data
+  },
+
+  // 模型预测 - 后端 POST /model/predict
+  predict: async (params: { model_id: string, prompt: string, max_new_tokens?: number, temperature?: number }) => {
+    const response = await server.api.v1.model.predict.post(params)
+    return response.data
+  },
 }

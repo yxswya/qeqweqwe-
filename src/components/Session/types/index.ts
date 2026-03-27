@@ -1,4 +1,100 @@
-import type { MessageResponse } from '../utils/elysia.ts'
+import type { MessageResponse } from '../utils/elysia'
+
+// ========================================
+// 消息内容类型定义
+// ========================================
+
+/** 文本内容 */
+export interface TextContent {
+  type: 'text'
+  text: string
+}
+
+/** 加载状态内容 */
+export interface LoadingContent {
+  type: 'loading'
+  status: 'pending' | 'rag_build_pending' | 'model_train_pending' | 'model_train_train_start' | 'model_train_train_complete' | 'model_train_register_start' | 'model_train_register_complete'
+}
+
+/** 响应内容 */
+export interface ResponseContent {
+  type: 'response'
+  data: any
+}
+
+/** RAG 构建响应内容 */
+export interface RagBuildResponseContent {
+  type: 'rag_build_response'
+  data: any
+}
+
+/** 模型训练响应内容 */
+export interface ModelTrainResponseContent {
+  type: 'model_train_response'
+  data: {
+    train: any
+    register: any
+  }
+}
+
+/** 错误内容 */
+export interface ErrorContent {
+  type: 'error'
+  message: string
+}
+
+/** 消息内容联合类型 */
+export type MessageContent =
+  | string
+  | TextContent
+  | LoadingContent
+  | ResponseContent
+  | RagBuildResponseContent
+  | ModelTrainResponseContent
+  | ErrorContent
+  | Record<string, any>
+
+// ========================================
+// 类型守卫
+// ========================================
+
+export function isTextContent(content: MessageContent): content is TextContent {
+  return typeof content === 'object' && content !== null && content.type === 'text'
+}
+
+export function isLoadingContent(content: MessageContent): content is LoadingContent {
+  return typeof content === 'object' && content !== null && content.type === 'loading'
+}
+
+export function isResponseContent(content: MessageContent): content is ResponseContent {
+  return typeof content === 'object' && content !== null && content.type === 'response'
+}
+
+export function isRagBuildResponseContent(content: MessageContent): content is RagBuildResponseContent {
+  return typeof content === 'object' && content !== null && content.type === 'rag_build_response'
+}
+
+export function isModelTrainResponseContent(content: MessageContent): content is ModelTrainResponseContent {
+  return typeof content === 'object' && content !== null && content.type === 'model_train_response'
+}
+
+export function isErrorContent(content: MessageContent): content is ErrorContent {
+  return typeof content === 'object' && content !== null && content.type === 'error'
+}
+
+/** 获取消息的文本内容（用于显示） */
+export function getTextFromContent(content: MessageContent): string {
+  if (typeof content === 'string') {
+    return content
+  }
+  if (isTextContent(content)) {
+    return content.text
+  }
+  if (isErrorContent(content)) {
+    return content.message
+  }
+  return ''
+}
 
 export type Message = MessageResponse
 

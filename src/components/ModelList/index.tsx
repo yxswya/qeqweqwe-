@@ -1,5 +1,5 @@
 import type { Model } from '@/api/modules/model'
-import { Box, Cpu, Database, FileCode, HardDrive, Sparkles } from 'lucide-react'
+import { Box, Sparkles } from 'lucide-react'
 import * as React from 'react'
 import { useNavigate } from 'react-router'
 import { modelApi } from '@/api/modules/model'
@@ -8,47 +8,18 @@ interface ModelListProps {
   sessionId?: string
 }
 
-function formatFileSize(bytes: number | null): string {
-  if (!bytes)
+function formatDate(date: Date | null): string {
+  if (!date)
     return '-'
-  if (bytes < 1024)
-    return `${bytes} B`
-  if (bytes < 1024 * 1024)
-    return `${(bytes / 1024).toFixed(1)} KB`
-  if (bytes < 1024 * 1024 * 1024)
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`
-}
-
-function formatDate(dateStr: string | null): string {
-  if (!dateStr)
-    return '-'
-  return new Date(dateStr).toLocaleString('zh-CN')
-}
-
-const taskTypeMap: Record<string, { label: string, color: string }> = {
-  'chat': { label: '对话', color: 'bg-blue-100 text-blue-700' },
-  'text-generation': { label: '文本生成', color: 'bg-purple-100 text-purple-700' },
-  'classification': { label: '分类', color: 'bg-green-100 text-green-700' },
+  return new Date(date).toLocaleString('zh-CN')
 }
 
 const ModelCard: React.FC<{ model: Model }> = ({ model }) => {
   const navigate = useNavigate()
-  const taskInfo = taskTypeMap[model.task] || { label: model.task, color: 'bg-gray-100 text-gray-700' }
 
   const handleClick = () => {
-    navigate(`/train-answer/${model.id}/${model.sessionId}`)
-  }
-
-  const handleViewRag = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    // 如果有关联的 RAG ID，直接高亮该 RAG
-    if (model.ragId) {
-      navigate(`/app/rags/${model.sessionId}?highlight=${model.ragId}`)
-    }
-    else {
-      navigate(`/app/rags/${model.sessionId}`)
-    }
+    // 使用 messageId 作为路由参数
+    navigate(`/train-answer/${model.id}`)
   }
 
   return (
@@ -62,34 +33,21 @@ const ModelCard: React.FC<{ model: Model }> = ({ model }) => {
             <Box className="w-5 h-5 text-indigo-600" />
           </div>
           <div>
-            <h3 className="font-semibold text-slate-800 truncate max-w-50" title={model.note || model.externalId}>
-              {model.note || model.externalId}
+            <h3 className="font-semibold text-slate-800 truncate max-w-50" title={model.title}>
+              {model.title}
             </h3>
             <p className="text-xs text-slate-400">{model.id}</p>
           </div>
         </div>
-        <span className={`px-2 py-1 rounded-md text-xs font-medium ${taskInfo.color}`}>
-          {taskInfo.label}
+        <span className="px-2 py-1 rounded-md text-xs font-medium bg-indigo-100 text-indigo-700">
+          模型
         </span>
       </div>
 
       <div className="space-y-3">
         <div className="flex items-center gap-2 text-sm text-slate-600">
-          <FileCode className="w-4 h-4 text-slate-400" />
-          <span className="truncate" title={model.modelUri}>{model.modelUri}</span>
-        </div>
-
-        <div className="flex items-center gap-2 text-sm text-slate-600">
-          <Cpu className="w-4 h-4 text-slate-400" />
-          <span>{model.modelType}</span>
-        </div>
-
-        <div className="flex items-center gap-2 text-sm text-slate-600">
-          <HardDrive className="w-4 h-4 text-slate-400" />
-          <span>{formatFileSize(model.fileSize)}</span>
-          {model.existsLocal && (
-            <span className="px-1.5 py-0.5 rounded bg-green-100 text-green-600 text-xs">本地</span>
-          )}
+          <span className="text-slate-400">内容:</span>
+          <span className="truncate" title={model.content}>{model.content.slice(0, 50)}...</span>
         </div>
       </div>
 
@@ -98,19 +56,6 @@ const ModelCard: React.FC<{ model: Model }> = ({ model }) => {
           创建于
           {formatDate(model.createdAt)}
         </span>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleViewRag}
-            className="flex items-center gap-1 px-2 py-1 rounded-md bg-emerald-50 text-emerald-600 hover:bg-emerald-100 transition-colors"
-          >
-            <Database className="w-3 h-3" />
-            <span>查看 RAG</span>
-          </button>
-          {model.trainId && (
-            <span className="text-indigo-500">关联训练</span>
-          )}
-        </div>
       </div>
     </div>
   )
@@ -125,15 +70,11 @@ const ModelList: React.FC<ModelListProps> = ({ sessionId }) => {
     const fetchModels = async () => {
       try {
         setLoading(true)
-        const response = sessionId
-          ? await modelApi.getLocalModels(sessionId)
+        // 使用新的 API 方法
+        const data = sessionId
+          ? await modelApi.getModelsBySessionId(sessionId)
           : await modelApi.getAllModels()
-        if (response.code === 0) {
-          setModels(response.data)
-        }
-        else {
-          setError(response.message)
-        }
+        setModels(data)
       }
       catch (err) {
         setError((err as Error).message)

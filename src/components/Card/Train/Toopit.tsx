@@ -4,47 +4,54 @@ import type { ModelRecommendResponse } from '@/components/Session/types/model.ts
 import { Loader2Icon } from 'lucide-react'
 import { useState } from 'react'
 import Modal from '@/components/Model'
+import { server } from '@/api/modules/session'
 import './Toopit.css'
 
-const TrainToopit: React.FC<{ message: Message }> = ({ message }) => {
+const TrainToopit: React.FC<{ message: Message }> = ({ message: _message }) => {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [data, setData] = useState<ModelRecommendResponse>()
 
-  const openModelSelect = () => {
+  const openModelSelect = async () => {
     setIsModalOpen(true)
     setLoading(true)
-    fetch(`${import.meta.env.VITE_API_BASE_URL}/model/recommend`, {
-      method: 'GET',
-      credentials: 'include',
-    }).then(res => res.json()).then((modelRecRes: ModelRecommendResponse) => {
-      setData(modelRecRes)
-    }).finally(() => {
+    try {
+      // 使用 Eden Treaty GET /model/recommend
+      const response = await server.api.v1.model.recommend.get()
+      if (response.data) {
+        setData(response.data as ModelRecommendResponse)
+      }
+    }
+    catch (error) {
+      console.error('获取模型推荐失败:', error)
+    }
+    finally {
       setLoading(false)
-    })
+    }
   }
 
-  const trainEvaluate = () => {
-    fetch(`${import.meta.env.VITE_API_BASE_URL}/train/evaluate`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    }).then(res => res.json())
+  const trainEvaluate = async () => {
+    try {
+      // 使用 Eden Treaty POST /train/evaluate
+      await server.api.v1.train.evaluate.post({})
+      console.log('训练评估完成')
+    }
+    catch (error) {
+      console.error('训练评估失败:', error)
+    }
   }
 
-  const trainModel = (model_id: string) => {
-    fetch(`${import.meta.env.VITE_API_BASE_URL}/train/start`, {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
+  const trainModel = async (model_id: string) => {
+    try {
+      // 使用 Eden Treaty POST /train/start
+      await server.api.v1.train.start.post({
         model_id,
-      }),
-    }).then(res => res.json())
+      })
+      console.log('训练任务已启动')
+    }
+    catch (error) {
+      console.error('启动训练失败:', error)
+    }
   }
 
   return (

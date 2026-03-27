@@ -1,5 +1,5 @@
 import { createHashRouter, redirect } from 'react-router'
-// import { authApi } from '@/api'
+import { authApi } from '@/api'
 import CanvasPage from '@/pages/Canvas'
 import Forbidden from '@/pages/Forbidden'
 import ModelList from '@/pages/ModelList'
@@ -43,7 +43,7 @@ export const router = createHashRouter([
         path: 'logout',
         action: async () => {
           try {
-            // await authApi.logout() // 通知后端
+            await authApi.signOut() // 通知后端登出
           }
           catch {
             // 忽略错误

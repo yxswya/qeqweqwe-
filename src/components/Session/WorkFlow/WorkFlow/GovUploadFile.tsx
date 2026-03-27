@@ -55,7 +55,7 @@ function formatTime(dateString: string): string {
 
 // 单个文件卡片组件
 const FileCard: React.FC<{ file: FileResponse }> = ({ file }) => {
-  const { icon, color, bg } = getFileIcon(file.fileName)
+  const { icon, color, bg } = getFileIcon(file.filename)
 
   return (
     <div className="group relative flex items-center gap-3 p-3 bg-white rounded-xl border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all duration-200 cursor-pointer">
@@ -67,10 +67,10 @@ const FileCard: React.FC<{ file: FileResponse }> = ({ file }) => {
       {/* 文件信息 */}
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-gray-800 truncate group-hover:text-blue-600 transition-colors">
-          {file.fileName}
+          {file.filename}
         </p>
         <p className="text-xs text-gray-400 mt-0.5">
-          {formatTime(file.createdAt)}
+          {formatTime(file.createdAt.toString())}
         </p>
       </div>
 
@@ -104,16 +104,25 @@ export const GovUploadFile: React.FC = () => {
   const submit = async (uploadFiles: FileList | null) => {
     if (!uploadFiles || uploadFiles.length === 0)
       return
-    const fileArray = [...uploadFiles]
 
-    const data = await server.api.v1.governance({ sessionId }).post({
-      files: fileArray,
-      message_id: '',
+    const response = await server.api.v1.chat.governance({
+      sessionId,
+    }).post({
+      taskType: 'rag',
+      files: uploadFiles as unknown as File[],
     })
 
-    setStatus({
-      files: [...files, ...(data.data || [])],
-    })
+    console.log(response)
+
+    // 更新文件列表
+    if (response.status === 200 && response.data?.files) {
+      setStatus({
+        files: [...files, ...response.data.files as FileResponse[]],
+      })
+    }
+    else {
+      console.error('文件上传失败:', response.error)
+    }
   }
 
   return (

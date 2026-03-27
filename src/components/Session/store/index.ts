@@ -1,11 +1,11 @@
 import type { FileResponse, MessageResponse } from '../utils/elysia'
-import type { ActionType, ApiResponse, ClarificationQuestion, Message } from '@/components/Session/types'
+import type { ActionType, ApiResponse, ClarificationQuestion, Message, MessageContent } from '@/components/Session/types'
 
 import { fetchEventSource } from '@microsoft/fetch-event-source'
 import { create } from 'zustand'
 import { server } from '@/api/modules/session'
 import { getAccessToken } from '@/auth'
-import { hasAnswer, hasIntent } from '@/components/Session/types'
+import { hasAnswer, hasIntent, isResponseContent } from '@/components/Session/types'
 import { getSessionMessages } from '../utils/elysia'
 
 // RAG 构建进度状态
@@ -144,7 +144,7 @@ export const useStore = create<{
 
       console.log('开始链接')
       const fetchPromise = fetchEventSource(
-        `${import.meta.env.VITE_API_BASE_URL}/session/chat/sse/${sessionId}?_t=${cacheBuster}`,
+        `${import.meta.env.VITE_API_BASE_URL}/api/v1/chat/sse/${sessionId}?_t=${cacheBuster}`,
         {
           method: 'GET',
           headers: {
@@ -223,82 +223,81 @@ export const useStore = create<{
       status: 'loading',
     })
 
-    // fetch(`${import.meta.env.VITE_API_BASE_URL}/session/chat/${sessionId || ''}`, {
-    //   credentials: 'include',
-    //   method: 'POST',
-    //   headers: {
-    //     'Content-Type': 'application/json',
-    //     'Authorization': `Bearer ${getAccessToken()}`,
-    //   },
-    //   body: JSON.stringify({
-    //     messageId: 'xx',
-    //     text,
-    //   }),
-    // }).then(res => res.json()).then((data) => {
-    //   console.log('back', data)
-    //   const { sessionId } = data
-    //   set({ sessionId })
-    // })
-
-    server.api.v1.session.chat({ sessionId }).post({ messageId: 'xx', text }).then((data) => {
-      console.log('back', data)
-      const { sessionId } = data.data
-      set({ sessionId })
+    // 调用后端 POST /chat/completion/:sessionId
+    server.api.v1.chat.completion({ sessionId }).post({ prompt: text }).then((response) => {
+      console.log('back', response)
+      if (response.data) {
+        // 处理响应...
+      }
     })
   },
   setSessionStatus(data: MessageResponse | undefined) {
+    console.log('data', data)
     if (!data)
       return
 
     const { setStatus } = get()
     const sessionId = data.sessionId
-    if (data.type === 'json') {
-      const content = JSON.parse(data.content) as ApiResponse
-      // const sessionId = hasAnswer(content) ? content.answer.session_id : content.completeness.session_id
-      if (hasAnswer(content)) {
-        if (content.answer.clarification_questions.length > 0) {
+    const content = data.content as MessageContent
+
+    // 处理响应类型内容
+    if (isResponseContent(content)) {
+      const responseData = content.data as ApiResponse
+
+      if (hasAnswer(responseData)) {
+        if (responseData.answer.clarification_questions.length > 0) {
           setStatus({
             sessionId,
             status: 'questions',
-            clarificationQuestions: content.answer.clarification_questions,
+            clarificationQuestions: responseData.answer.clarification_questions,
           })
         }
       }
-      else if (hasIntent(content)) {
-        // console.log(content.intent.actions.join('/'), '/', content.workflow_hint.stage)
-        if (content.intent.actions.includes('ASK_MORE_INFO') || content.workflow_hint.stage) {
+      else if (hasIntent(responseData)) {
+        if (responseData.intent.actions.includes('ASK_MORE_INFO') || responseData.workflow_hint.stage) {
           setStatus({
             sessionId,
             status: 'input',
             clarificationQuestions: [],
-            actions: content.intent.actions,
+            actions: responseData.intent.actions,
           })
         }
         else {
           setStatus({
             sessionId,
-            actions: content.intent.actions,
+            actions: responseData.intent.actions,
           })
         }
       }
       else {
-        // console.log('存有无法识别的消息')
+        // 无法识别的响应类型
+        setStatus({
+          sessionId,
+          status: 'input',
+          clarificationQuestions: [],
+        })
       }
     }
     else {
+      // 其他内容类型（text, loading, error 等）
       setStatus({
         sessionId,
-        status: 'none',
+        status: 'input',
         clarificationQuestions: [],
       })
     }
   },
   parseContent(response: string) {
     const { setSessionStatus, addMessage } = get()
-    const data = JSON.parse(response) as MessageResponse
-    setSessionStatus(data)
 
-    addMessage(data)
+    // SSE 消息格式: { type: "message", data: { type: "user_message" | "bot_message", message: {...} }, timestamp: ... }
+    const sseData = JSON.parse(response) as { type: string, data: { type: string, message: MessageResponse }, timestamp: number }
+
+    if (sseData.type === 'message' && sseData.data?.message) {
+      const message = sseData.data.message
+      setSessionStatus(message)
+      addMessage(message)
+    }
   },
 }))
 

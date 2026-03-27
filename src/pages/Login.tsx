@@ -1,4 +1,4 @@
-import type { LoginParams } from '@/api'
+import type { LoginParams, RegisterParams } from '@/api'
 import { ArrowRight, Layers, Lock, Mail, Sparkles, User } from 'lucide-react'
 import * as React from 'react'
 import {
@@ -17,7 +17,13 @@ import {
   LoadingOverlay,
   PasswordStrength,
 } from '@/components/Auth'
-import { isAuthenticated, safeRedirect, setTokens } from '../auth'
+import { isAuthenticated, safeRedirect, setToken } from '../auth'
+
+// 从 @/api 导出的 authApi
+const { login, register } = authApi
+
+// 类型别名，用于 action 函数
+type ActionData = { error?: string, intent?: string }
 
 // 已登录访问 /login：直接跳走
 export function loader({ request }: { request: Request }) {
@@ -33,6 +39,8 @@ export function loader({ request }: { request: Request }) {
 export async function action({ request }: { request: Request }) {
   const formData = await request.formData()
   const intent = formData.get('intent')
+  const url = new URL(request.url)
+  const redirectTo = url.searchParams.get('redirectTo') || '/app/dashboard'
 
   // 注册逻辑
   if (intent === 'register') {
@@ -44,14 +52,21 @@ export async function action({ request }: { request: Request }) {
       return { error: '请填写所有必填项', intent: 'register' }
     }
 
-    if (password.length < 8) {
-      return { error: '密码至少需要 8 位字符', intent: 'register' }
+    if (password.length < 6) {
+      return { error: '密码至少需要 6 位字符', intent: 'register' }
     }
 
     try {
-      const result = await authApi.register({ username, email, password })
-      setTokens(result.data.access_token || '', result.data.refresh_token || '')
-      return redirect(new URL(request.url).searchParams.get('redirectTo') || '/app/dashboard')
+      const params: RegisterParams = { username, password, email }
+      const result = await authApi.register(params)
+      setToken(result.token)
+      // 存储用户信息到 localStorage
+      localStorage.setItem('user_info', JSON.stringify({
+        username: result.user.username,
+        email: result.user.email,
+        role: '普通用户',
+      }))
+      return redirect(redirectTo)
     }
     catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } }, message?: string }
@@ -72,8 +87,14 @@ export async function action({ request }: { request: Request }) {
 
   try {
     const result = await authApi.login(params)
-    setTokens(result.data.access_token || '', result.data.refresh_token || '')
-    return redirect(new URL(request.url).searchParams.get('redirectTo') || '/app/dashboard')
+    setToken(result.token)
+    // 存储用户信息到 localStorage
+    localStorage.setItem('user_info', JSON.stringify({
+      username: result.user.username,
+      email: result.user.email,
+      role: '普通用户',
+    }))
+    return redirect(redirectTo)
   }
   catch (err: unknown) {
     const axiosErr = err as { response?: { data?: { message?: string } }, message?: string }

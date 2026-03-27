@@ -1,46 +1,35 @@
 import { redirect } from 'react-router'
-import { authApi } from './api'
 
 const ACCESS_TOKEN_KEY = 'access_token'
-const REFRESH_TOKEN_KEY = 'refresh_token'
 
 // 获取 access_token
 export function getAccessToken(): string | null {
   return localStorage.getItem(ACCESS_TOKEN_KEY)
 }
 
-// 获取 refresh_token
-export function getRefreshToken(): string | null {
-  return localStorage.getItem(REFRESH_TOKEN_KEY)
-}
-
 // 存储 Token（登录时调用）
-export function setTokens(accessToken: string, refreshToken: string) {
-  localStorage.setItem(ACCESS_TOKEN_KEY, accessToken)
-  localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken)
+export function setToken(token: string) {
+  localStorage.setItem(ACCESS_TOKEN_KEY, token)
 }
 
-// 清除所有 Token
+// 清除 Token 和用户信息
 export function clearTokens() {
   localStorage.removeItem(ACCESS_TOKEN_KEY)
-  localStorage.removeItem(REFRESH_TOKEN_KEY)
+  localStorage.removeItem('user_info')
 }
 
-// 刷新 Token（用于拦截器）
-export async function refreshAccessToken(): Promise<string> {
-  const refreshToken = getRefreshToken()
-  if (!refreshToken)
-    throw new Error('No refresh token')
-
-  try {
-    const data = await authApi.refreshToken({ refresh_token: refreshToken })
-    setTokens(data.data.access_token, data.data.refresh_token || refreshToken)
-    return data.data.access_token
+// 获取用户信息
+export function getUserInfo(): { username: string, email?: string | null, role?: string } | null {
+  const userInfo = localStorage.getItem('user_info')
+  if (userInfo) {
+    try {
+      return JSON.parse(userInfo)
+    }
+    catch {
+      return null
+    }
   }
-  catch (err) {
-    clearTokens()
-    throw err
-  }
+  return null
 }
 
 export function isAuthenticated() {

@@ -20,13 +20,8 @@ export default function CanvasPage() {
     try {
       setLoading(true)
       setError(null)
-      const response = await canvasApi.getSessionGraph(sessionId)
-      if (response.code === 0 && response.data) {
-        setGraphData(response.data)
-      }
-      else {
-        setError(response.message || '获取数据失败')
-      }
+      const data = await canvasApi.getSessionGraph(sessionId)
+      setGraphData(data)
     }
     catch (err) {
       setError((err as Error).message)

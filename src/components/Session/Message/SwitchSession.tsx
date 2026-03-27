@@ -18,9 +18,13 @@ function SwitchSession() {
 
   // 获取会话列表
   useEffect(() => {
-    server.api.v1.session.chat.get()
-      .then((data) => {
-        setSessions(data.data || [])
+    // 使用 POST /session/list 获取会话列表
+    server.api.v1.session.list.post()
+      .then((response) => {
+        setSessions(response.data || [])
+      })
+      .catch((error) => {
+        console.error('获取会话列表失败:', error)
       })
   }, [])
 

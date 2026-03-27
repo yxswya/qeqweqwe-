@@ -4,10 +4,8 @@ import type {
   InternalAxiosRequestConfig,
 } from 'axios'
 import axios from 'axios'
-import { redirect } from 'react-router'
-import { clearTokens, getAccessToken, refreshAccessToken } from '@/auth'
+import { clearTokens, getAccessToken } from '@/auth'
 import { env } from '@/config/env'
-import { ERROR_CODE } from './constants'
 
 // ========== 创建 Axios 实例 ==========
 export const request = axios.create({
@@ -17,27 +15,6 @@ export const request = axios.create({
     'Content-Type': 'application/json',
   },
 })
-
-// ===== 刷新 Token 的锁（防止多次同时刷新） =====
-let isRefreshing = false
-let failedQueue: Array<{
-  resolve: (token: string) => void
-  reject: (error: unknown) => void
-}> = []
-
-// 将新 Token 应用到队列中的请求
-function processQueue(error: unknown, token: string | null = null) {
-  failedQueue.forEach((prom) => {
-    if (error) {
-      prom.reject(error)
-    }
-    else {
-      prom.resolve(token!)
-    }
-  })
-
-  failedQueue = []
-}
 
 // ========== 请求拦截器：自动携带 Token ==========
 request.interceptors.request.use(
@@ -64,17 +41,9 @@ request.interceptors.request.use(
 // ========== 响应拦截器：统一处理错误 ==========
 request.interceptors.response.use(
   (response: AxiosResponse) => {
-    const { code } = response.data
-
-    // 检查业务错误码：4001 → Token 过期
-    if (code === ERROR_CODE.TOKEN_EXPIRED) {
-      return handleTokenExpired(response.config) // 处理刷新逻辑
-    }
-
-    // 如果后端有 { code, data, message } 格式，可在这里解包
     return response
   },
-  (error: AxiosError<{ message?: string, code?: number }>) => {
+  (error: AxiosError<{ message?: string }>) => {
     const { response, config } = error
 
     // 打印错误
@@ -138,46 +107,6 @@ export const http = {
 
   delete: <T>(url: string, params?: object) =>
     request.delete<T>(url, { params }).then(res => res.data),
-}
-
-/**
- * 处理 Token 过期（4001）
- * @param originalConfig 原始请求的配置
- */
-async function handleTokenExpired(originalConfig: InternalAxiosRequestConfig) {
-  // 如果正在刷新，將请求加入队列，等待刷新完成
-  if (isRefreshing) {
-    return new Promise<string>((resolve, reject) => {
-      failedQueue.push({ resolve, reject })
-    }).then((newToken) => {
-      // 刷新成功后，用新 Token 重发原始请求
-      originalConfig.headers.Authorization = `Bearer ${newToken}`
-      return request(originalConfig)
-    })
-  }
-
-  // 开始刷新 Token
-  isRefreshing = true
-
-  try {
-    const newAccessToken = await refreshAccessToken()
-
-    // 刷新成功 → 更新队列中的所有请求
-    processQueue(null, newAccessToken)
-
-    // 用新 Token 重发原始请求
-    originalConfig.headers.Authorization = `Bearer ${newAccessToken}`
-    return request(originalConfig)
-  }
-  catch (refreshError) {
-    // 刷新失败 → 清空队列并跳转登录页
-    processQueue(refreshError, null)
-    clearTokens()
-    throw redirect(`/login?redirectTo=${encodeURIComponent(window.location.pathname)}`)
-  }
-  finally {
-    isRefreshing = false
-  }
 }
 
 export default request

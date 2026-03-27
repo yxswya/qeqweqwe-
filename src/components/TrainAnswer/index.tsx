@@ -99,9 +99,10 @@ function TrainAnswer() {
       }
 
       try {
-        const response = await server.api.v1.model.local({ sessionId }).get()
-        if (response.data?.code === 0 && response.data.data) {
-          const modelList = response.data.data as ModelItem[]
+        // 使用新的 API 路径 GET /model/list/:sessionId
+        const response = await server.api.v1.model.list({ sessionId }).get()
+        if (response.data) {
+          const modelList = response.data as ModelItem[]
           const convList = modelList.map((model, index) => modelToConversation(model, index))
           setConversations(convList)
 
