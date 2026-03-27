@@ -1,13 +1,13 @@
 import type { ApiResponse } from '../types'
 import type { StepItem } from './WorkFlow/ProgressDisplay'
 import { Bell, GitBranch, Settings, Workflow } from 'lucide-react'
+import { useNavigate } from 'react-router'
 import { useStore } from '@/components/Session/store'
 import Tabs from '@/components/Tabs'
 import { hasAnswer, hasIntent } from '../types'
 import { GovUploadFile } from './WorkFlow/GovUploadFile'
 import Products from './WorkFlow/Products'
 import ProgressDisplay from './WorkFlow/ProgressDisplay'
-import { useNavigate } from 'react-router'
 
 function Plane() {
   const navigate = useNavigate()

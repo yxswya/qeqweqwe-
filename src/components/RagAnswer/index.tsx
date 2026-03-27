@@ -6,33 +6,85 @@ import { server } from '@/api/modules/session'
 import ChatMain from './components/ChatMain'
 import ConversationList from './components/ConversationList'
 
-// RAG 数据类型（从 API 返回）
+// RAG 构建响应中的 artifacts 结构
+interface RagArtifacts {
+  index_version: string
+  index_uri: string
+  bm25_uri: string
+}
+
+// RAG 结果
+interface RagResult {
+  run_id: string
+  stage: string
+  cached: boolean
+  artifacts: RagArtifacts
+  stats: {
+    load_ms: number
+    chunk_ms: number
+    embed_ms: number
+    index_ms: number
+  }
+}
+
+// RAG 构建响应内容（存储在 content 字段中的 JSON）
+interface RagContent {
+  answer: {
+    rag: RagResult
+    governance: unknown[]
+  }
+  confidence: number
+  sources: string[]
+  idempotency_key: string
+}
+
+// RAG 数据类型（从 API 返回，匹配后端 SelectRag）
 interface RagItem {
   id: string
-  sessionId: string
   title: string
   messageId: string
-  indexVersion: string
-  content: string | null
+  content: string // JSON 字符串，需要解析为 RagContent
+  deletedAt: Date | null
   createdAt: Date | null
+  updatedAt: Date | null
+}
+
+// 解析 RAG content 字段
+function parseRagContent(contentStr: string): RagContent | null {
+  try {
+    return JSON.parse(contentStr)
+  }
+  catch {
+    console.error('Failed to parse RAG content:', contentStr)
+    return null
+  }
 }
 
 // 将 RAG 数据转换为 Conversation 格式
-function ragToConversation(rag: RagItem, index: number): Conversation {
+function ragToConversation(rag: RagItem, index: number): Conversation | null {
   const avatarClasses = ['a1', 'a2', 'a3', 'a4', 'a5', 'a6']
   const time = rag.createdAt
     ? new Date(rag.createdAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
     : '刚刚'
+
+  // 解析 content 字段获取 index_version
+  const content = parseRagContent(rag.content)
+  if (!content?.answer?.rag?.artifacts?.index_version) {
+    console.warn('RAG item missing index_version:', rag.id)
+    return null
+  }
+
+  const indexVersion = content.answer.rag.artifacts.index_version
 
   return {
     id: rag.id,
     name: rag.title || `RAG ${index + 1}`,
     avatar: rag.title?.charAt(0) || 'R',
     avatarClass: avatarClasses[index % avatarClasses.length],
-    preview: `索引: ${rag.indexVersion.slice(0, 8)}...`,
+    preview: `索引: ${indexVersion.slice(0, 8)}...`,
     time,
     online: true,
-    indexVersion: rag.indexVersion,
+    indexVersion,
   }
 }
 
@@ -73,15 +125,23 @@ function RagAnswer() {
         const response = await server.api.v1.rag.list({ sessionId }).get()
         if (response.data) {
           const ragList = response.data as RagItem[]
-          const convList = ragList.map((rag, index) => ragToConversation(rag, index))
+          // 过滤掉解析失败的 RAG 项
+          const convList = ragList
+            .map((rag, index) => ragToConversation(rag, index))
+            .filter((c): c is Conversation => c !== null)
           setConversations(convList)
 
-          // 如果有 id 参数，选中对应的 RAG
+          // 如果有 id 参数，选中对应的 RAG（通过 id 匹配）
           if (params.id) {
-            const targetConv = convList.find(c => c.indexVersion === params.id)
+            const targetConv = convList.find(c => c.id === params.id)
             if (targetConv) {
               setActiveConversation(targetConv.id)
               // 设置欢迎消息
+              setMessages([createWelcomeMessage()])
+            }
+            else if (convList.length > 0) {
+              // 如果没找到匹配的，默认选中第一个
+              setActiveConversation(convList[0].id)
               setMessages([createWelcomeMessage()])
             }
           }
@@ -150,8 +210,9 @@ function RagAnswer() {
     setIsTyping(true)
 
     // 调用 API
-    server.api.v1.rag.chat({ index_version: indexVersion }).post({
+    server.api.v1.rag.chat.post({
       text: inputValue,
+      index_version: indexVersion,
     }).then((res) => {
       if (!res.data)
         return
@@ -203,7 +264,7 @@ function RagAnswer() {
     >
       {/* 聊天容器：960px * 760px 居中 */}
       <div
-        className="w-full max-w-[960px] h-[92vh] max-h-[760px] bg-white flex overflow-hidden
+        className="w-full max-w-240 h-[92vh] max-h-190 bg-white flex overflow-hidden
           shadow-[0_20px_60px_rgba(0,0,0,0.08),0_1px_3px_rgba(0,0,0,0.04)]
           rounded-2xl relative"
       >

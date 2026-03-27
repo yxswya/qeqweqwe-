@@ -1,27 +1,48 @@
-import type { CanvasNode } from '@/api/modules/canvas'
-import { canvasApi } from '@/api/modules/canvas'
-import { CanvasGraph, InfiniteCanvas } from '@/components/Canvas'
+import type { MessageResponse } from '@/components/Session/utils/elysia'
+import type { FileResponse } from '@/components/Session/utils/elysia'
+import { Brain, Database, FileText, ArrowLeft, ExternalLink } from 'lucide-react'
 import * as React from 'react'
-import { useNavigate, useParams } from 'react-router'
-import { ArrowLeft, Loader2, RefreshCw } from 'lucide-react'
+import { Link, useNavigate, useParams } from 'react-router'
+import { server } from '@/api/modules/session'
+
+interface ProductData {
+  rags: Array<{ id: string, title: string, content: string, createdAt?: Date }>
+  models: Array<{ id: string, title: string, content: string, createdAt?: Date }>
+  files: FileResponse[]
+}
 
 export default function CanvasPage() {
   const { sessionId } = useParams<{ sessionId: string }>()
   const navigate = useNavigate()
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState<string | null>(null)
-  const [graphData, setGraphData] = React.useState<{ nodes: any[], edges: any[] } | null>(null)
-  const [selectedNode, setSelectedNode] = React.useState<CanvasNode | null>(null)
+  const [data, setData] = React.useState<ProductData>({ rags: [], models: [], files: [] })
 
-  const fetchGraph = React.useCallback(async () => {
+  const fetchData = React.useCallback(async () => {
     if (!sessionId)
       return
 
     try {
       setLoading(true)
       setError(null)
-      const data = await canvasApi.getSessionGraph(sessionId)
-      setGraphData(data)
+
+      const response = await server.api.v1.session.detail({ sessionId }).get()
+
+      if (response.data) {
+        const messages = (response.data.messages || []) as MessageResponse[]
+        const files = (response.data.governanceFiles || []) as FileResponse[]
+
+        // 从消息中提取 rag 和 model
+        const rags = messages
+          .filter(msg => msg.rag)
+          .map(msg => msg.rag!)
+
+        const models = messages
+          .filter(msg => msg.model)
+          .map(msg => msg.model!)
+
+        setData({ rags, models, files })
+      }
     }
     catch (err) {
       setError((err as Error).message)
@@ -32,12 +53,8 @@ export default function CanvasPage() {
   }, [sessionId])
 
   React.useEffect(() => {
-    fetchGraph()
-  }, [fetchGraph])
-
-  const handleNodeClick = (node: CanvasNode) => {
-    setSelectedNode(node)
-  }
+    fetchData()
+  }, [fetchData])
 
   const handleBack = () => {
     navigate(-1)
@@ -45,26 +62,26 @@ export default function CanvasPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col h-full">
-        <div className="px-4 py-3 border-b border-slate-200 bg-white">
+      <div className="flex flex-col h-full bg-gradient-to-br from-slate-50 to-slate-100">
+        <div className="px-6 py-4 border-b border-slate-200 bg-white/80 backdrop-blur-sm">
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={handleBack}
-              className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-slate-100 rounded-xl transition-colors"
             >
               <ArrowLeft className="w-5 h-5 text-slate-600" />
             </button>
             <div>
-              <h1 className="text-lg font-semibold text-slate-800">会话图谱</h1>
+              <h1 className="text-xl font-bold text-slate-800">产物中心</h1>
               <p className="text-sm text-slate-500">加载中...</p>
             </div>
           </div>
         </div>
         <div className="flex-1 flex items-center justify-center">
-          <div className="flex items-center gap-3 text-slate-500">
-            <Loader2 className="w-5 h-5 animate-spin" />
-            <span>正在加载图谱数据...</span>
+          <div className="flex flex-col items-center gap-4 text-slate-400">
+            <div className="w-12 h-12 border-4 border-slate-200 border-t-indigo-500 rounded-full animate-spin" />
+            <span className="text-lg">正在加载产物数据...</span>
           </div>
         </div>
       </div>
@@ -73,29 +90,29 @@ export default function CanvasPage() {
 
   if (error) {
     return (
-      <div className="flex flex-col h-full">
-        <div className="px-4 py-3 border-b border-slate-200 bg-white">
+      <div className="flex flex-col h-full bg-gradient-to-br from-slate-50 to-slate-100">
+        <div className="px-6 py-4 border-b border-slate-200 bg-white/80 backdrop-blur-sm">
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={handleBack}
-              className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-slate-100 rounded-xl transition-colors"
             >
               <ArrowLeft className="w-5 h-5 text-slate-600" />
             </button>
             <div>
-              <h1 className="text-lg font-semibold text-slate-800">会话图谱</h1>
+              <h1 className="text-xl font-bold text-slate-800">产物中心</h1>
               <p className="text-sm text-red-500">{error}</p>
             </div>
           </div>
         </div>
         <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <p className="text-red-500 mb-4">{error}</p>
+          <div className="text-center bg-white rounded-2xl shadow-xl p-8">
+            <p className="text-red-500 mb-6 text-lg">{error}</p>
             <button
               type="button"
-              onClick={fetchGraph}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+              onClick={fetchData}
+              className="px-6 py-3 bg-indigo-500 text-white rounded-xl hover:bg-indigo-600 transition-colors font-medium shadow-lg shadow-indigo-500/30"
             >
               重试
             </button>
@@ -105,154 +122,207 @@ export default function CanvasPage() {
     )
   }
 
+  const hasProducts = data.rags.length > 0 || data.models.length > 0 || data.files.length > 0
+
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col h-full bg-gradient-to-br from-slate-50 via-white to-slate-50">
       {/* 头部 */}
-      <div className="px-4 py-3 border-b border-slate-200 bg-white z-20 shrink-0">
+      <div className="px-6 py-4 border-b border-slate-200/80 bg-white/80 backdrop-blur-sm sticky top-0 z-20">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={handleBack}
-              className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-slate-100 rounded-xl transition-colors"
             >
               <ArrowLeft className="w-5 h-5 text-slate-600" />
             </button>
             <div>
-              <h1 className="text-lg font-semibold text-slate-800">会话图谱</h1>
+              <h1 className="text-xl font-bold text-slate-800">产物中心</h1>
               <p className="text-sm text-slate-500">
-                {sessionId ? `会话 ID: ${sessionId.slice(0, 12)}...` : '所有会话概览'}
+                {sessionId ? `会话 ${sessionId.slice(0, 8)}...` : '所有产物'}
               </p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={fetchGraph}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
-          >
-            <RefreshCw className="w-4 h-4" />
-            刷新
-          </button>
+          <div className="flex items-center gap-3 text-sm text-slate-500">
+            <span className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-full font-medium">
+              <Database className="w-4 h-4" />
+              {data.rags.length} 知识库
+            </span>
+            <span className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-full font-medium">
+              <Brain className="w-4 h-4" />
+              {data.models.length} 模型
+            </span>
+            <span className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 text-amber-600 rounded-full font-medium">
+              <FileText className="w-4 h-4" />
+              {data.files.length} 文件
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* 画布区域 */}
-      <div className="flex-1 relative bg-gradient-to-br from-slate-50 to-slate-100 overflow-hidden">
-        {graphData && (
-          <InfiniteCanvas className="w-full h-full">
-            <CanvasGraph
-              nodes={graphData.nodes}
-              edges={graphData.edges}
-              onNodeClick={handleNodeClick}
-              selectedNodeId={selectedNode?.id}
-            />
-          </InfiniteCanvas>
-        )}
-
-        {/* 图例 - 固定在视口内 */}
-        <div className="absolute top-4 left-4 bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-slate-200 p-4 z-30">
-          <h4 className="text-xs font-semibold text-slate-600 mb-3 uppercase tracking-wide">图例</h4>
-          <div className="space-y-2">
-            <div className="flex items-center gap-2.5">
-              <div className="w-4 h-4 rounded-lg bg-blue-500 shadow-sm" />
-              <span className="text-sm text-slate-600">会话</span>
-            </div>
-            <div className="flex items-center gap-2.5">
-              <div className="w-4 h-4 rounded-lg bg-emerald-500 shadow-sm" />
-              <span className="text-sm text-slate-600">知识库 (RAG)</span>
-            </div>
-            <div className="flex items-center gap-2.5">
-              <div className="w-4 h-4 rounded-lg bg-amber-500 shadow-sm" />
-              <span className="text-sm text-slate-600">训练</span>
-            </div>
-            <div className="flex items-center gap-2.5">
-              <div className="w-4 h-4 rounded-lg bg-indigo-500 shadow-sm" />
-              <span className="text-sm text-slate-600">模型</span>
-            </div>
-            <div className="flex items-center gap-2.5">
-              <div className="w-4 h-4 rounded-lg bg-purple-500 shadow-sm" />
-              <span className="text-sm text-slate-600">文件</span>
-            </div>
-          </div>
-        </div>
-
-        {/* 操作提示 */}
-        <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-slate-200 px-4 py-2.5 z-30">
-          <p className="text-sm text-slate-500">
-            🖱️ 拖拽移动 · 滚轮缩放 · 点击节点查看详情
-          </p>
-        </div>
-
-        {/* 选中节点详情面板 */}
-        {selectedNode && (
-          <div className="absolute bottom-4 left-4 w-80 bg-white/95 backdrop-blur-sm rounded-xl shadow-xl border border-slate-200 p-5 z-30">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-slate-800 text-lg">{selectedNode.title}</h3>
-              <button
-                type="button"
-                onClick={() => setSelectedNode(null)}
-                className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors"
-              >
-                ×
-              </button>
-            </div>
-            <div className="space-y-2.5 text-sm">
-              <div className="flex justify-between py-1.5 border-b border-slate-100">
-                <span className="text-slate-500">类型</span>
-                <span className="text-slate-700 font-medium capitalize">{selectedNode.type}</span>
-              </div>
-              <div className="flex justify-between py-1.5 border-b border-slate-100">
-                <span className="text-slate-500">ID</span>
-                <span className="text-slate-700 font-mono text-xs">{selectedNode.id}</span>
-              </div>
-              {selectedNode.createdAt && (
-                <div className="flex justify-between py-1.5 border-b border-slate-100">
-                  <span className="text-slate-500">创建时间</span>
-                  <span className="text-slate-700">
-                    {new Date(selectedNode.createdAt).toLocaleString('zh-CN')}
-                  </span>
+      {/* 内容区域 */}
+      <div className="flex-1 overflow-auto p-6">
+        {!hasProducts
+          ? (
+              <div className="h-full flex items-center justify-center">
+                <div className="text-center">
+                  <div className="w-20 h-20 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <Database className="w-10 h-10 text-slate-300" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-slate-700 mb-2">暂无产物</h3>
+                  <p className="text-slate-500">开始构建知识库或训练模型后，产物将在这里展示</p>
                 </div>
-              )}
-              {/* 显示额外数据 */}
-              {Object.entries(selectedNode.data).map(([key, value]) => {
-                if (value === null || value === undefined)
-                  return null
-                const displayValue = typeof value === 'string' && value.length > 30
-                  ? `${value.slice(0, 30)}...`
-                  : String(value)
-                return (
-                  <div key={key} className="flex justify-between py-1.5 border-b border-slate-100">
-                    <span className="text-slate-500">{key}</span>
-                    <span className="text-slate-700 font-mono text-xs truncate max-w-40" title={String(value)}>
-                      {displayValue}
+              </div>
+            )
+          : (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* 知识库列 */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 sticky top-0 bg-gradient-to-r from-slate-50 via-white to-slate-50 py-2 z-10">
+                    <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center">
+                      <Database className="w-4 h-4 text-indigo-600" />
+                    </div>
+                    <h2 className="text-lg font-bold text-slate-800">知识库</h2>
+                    <span className="px-2 py-0.5 bg-indigo-100 text-indigo-600 text-xs font-semibold rounded-full">
+                      {data.rags.length}
                     </span>
                   </div>
-                )
-              })}
-            </div>
-            {/* 快捷操作按钮 */}
-            <div className="mt-4 pt-3 border-t border-slate-100 flex gap-2">
-              {selectedNode.type === 'rag' && selectedNode.data.indexVersion && (
-                <button
-                  type="button"
-                  onClick={() => navigate(`/rag-answer/${selectedNode.data.indexVersion}/${selectedNode.id}`)}
-                  className="flex-1 px-3 py-2 text-sm bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-colors font-medium"
-                >
-                  打开问答
-                </button>
-              )}
-              {selectedNode.type === 'model' && (
-                <button
-                  type="button"
-                  onClick={() => navigate(`/train-answer/${selectedNode.id}/${sessionId}`)}
-                  className="flex-1 px-3 py-2 text-sm bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors font-medium"
-                >
-                  打开对话
-                </button>
-              )}
-            </div>
-          </div>
-        )}
+                  <div className="space-y-3">
+                    {data.rags.map((rag, index) => (
+                      <Link
+                        key={rag.id}
+                        to={`/rag-answer/${rag.id}/${sessionId}`}
+                        className="group block bg-white rounded-2xl border border-slate-200/80 p-5 hover:border-indigo-300 hover:shadow-xl hover:shadow-indigo-500/10 transition-all duration-300"
+                      >
+                        <div className="flex items-start gap-4">
+                          <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-indigo-500/30">
+                            <Database className="w-6 h-6 text-white" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-indigo-500 uppercase tracking-wider">
+                                RAG-{String(index + 1).padStart(2, '0')}
+                              </span>
+                            </div>
+                            <h3 className="text-base font-semibold text-slate-800 mt-1 group-hover:text-indigo-600 transition-colors truncate">
+                              {rag.title || `知识库 ${index + 1}`}
+                            </h3>
+                            {rag.createdAt && (
+                              <p className="text-xs text-slate-400 mt-1.5">
+                                {new Date(rag.createdAt).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}
+                              </p>
+                            )}
+                          </div>
+                          <ExternalLink className="w-5 h-5 text-slate-300 group-hover:text-indigo-500 transition-colors shrink-0" />
+                        </div>
+                      </Link>
+                    ))}
+                    {data.rags.length === 0 && (
+                      <div className="text-center py-8 text-slate-400 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                        暂无知识库
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* 模型列 */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 sticky top-0 bg-gradient-to-r from-slate-50 via-white to-slate-50 py-2 z-10">
+                    <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center">
+                      <Brain className="w-4 h-4 text-emerald-600" />
+                    </div>
+                    <h2 className="text-lg font-bold text-slate-800">训练模型</h2>
+                    <span className="px-2 py-0.5 bg-emerald-100 text-emerald-600 text-xs font-semibold rounded-full">
+                      {data.models.length}
+                    </span>
+                  </div>
+                  <div className="space-y-3">
+                    {data.models.map((model, index) => (
+                      <Link
+                        key={model.id}
+                        to={`/train-answer/${model.id}/${sessionId}`}
+                        className="group block bg-white rounded-2xl border border-slate-200/80 p-5 hover:border-emerald-300 hover:shadow-xl hover:shadow-emerald-500/10 transition-all duration-300"
+                      >
+                        <div className="flex items-start gap-4">
+                          <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-emerald-500/30">
+                            <Brain className="w-6 h-6 text-white" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-emerald-500 uppercase tracking-wider">
+                                MODEL-{String(index + 1).padStart(2, '0')}
+                              </span>
+                            </div>
+                            <h3 className="text-base font-semibold text-slate-800 mt-1 group-hover:text-emerald-600 transition-colors truncate">
+                              {model.title || `模型 ${index + 1}`}
+                            </h3>
+                            {model.createdAt && (
+                              <p className="text-xs text-slate-400 mt-1.5">
+                                {new Date(model.createdAt).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}
+                              </p>
+                            )}
+                          </div>
+                          <ExternalLink className="w-5 h-5 text-slate-300 group-hover:text-emerald-500 transition-colors shrink-0" />
+                        </div>
+                      </Link>
+                    ))}
+                    {data.models.length === 0 && (
+                      <div className="text-center py-8 text-slate-400 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                        暂无训练模型
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* 治理文件列 */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 sticky top-0 bg-gradient-to-r from-slate-50 via-white to-slate-50 py-2 z-10">
+                    <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center">
+                      <FileText className="w-4 h-4 text-amber-600" />
+                    </div>
+                    <h2 className="text-lg font-bold text-slate-800">治理文件</h2>
+                    <span className="px-2 py-0.5 bg-amber-100 text-amber-600 text-xs font-semibold rounded-full">
+                      {data.files.length}
+                    </span>
+                  </div>
+                  <div className="space-y-3">
+                    {data.files.map((file, index) => (
+                      <div
+                        key={file.id}
+                        className="group bg-white rounded-2xl border border-slate-200/80 p-5 hover:border-amber-300 hover:shadow-xl hover:shadow-amber-500/10 transition-all duration-300"
+                      >
+                        <div className="flex items-start gap-4">
+                          <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-orange-500 rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-amber-500/30">
+                            <FileText className="w-6 h-6 text-white" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-amber-500 uppercase tracking-wider">
+                                FILE-{String(index + 1).padStart(2, '0')}
+                              </span>
+                            </div>
+                            <h3 className="text-base font-semibold text-slate-800 mt-1 truncate">
+                              {file.filename}
+                            </h3>
+                            {file.createdAt && (
+                              <p className="text-xs text-slate-400 mt-1.5">
+                                {new Date(file.createdAt).toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric' })}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {data.files.length === 0 && (
+                      <div className="text-center py-8 text-slate-400 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                        暂无治理文件
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
       </div>
     </div>
   )
