@@ -13,6 +13,8 @@ import {
   hasRagBuildProgress,
   isErrorContent,
   isLoadingContent,
+  isModelTrainResponseContent,
+  isRagBuildResponseContent,
   isResponseContent,
   isTextContent,
 } from '@/components/Session/types'
@@ -114,6 +116,56 @@ export function renderMessageListItem(message: Message) {
   // 文本内容
   if (isTextContent(content)) {
     return <Text content={content.text} />
+  }
+
+  // RAG 构建响应内容
+  if (isRagBuildResponseContent(content)) {
+    const responseData = content.data
+    // 检查是否包含进度信息
+    if (responseData && typeof responseData === 'object') {
+      if (hasRagBuildProgress(responseData)) {
+        return <RagBuildProgress title={responseData.title} status={responseData.status} />
+      }
+    }
+    return <Text content="知识库构建完成" />
+  }
+
+  // 模型训练响应内容
+  if (isModelTrainResponseContent(content)) {
+    const responseData = content.data
+    // 检查是否包含进度信息
+    if (responseData && typeof responseData === 'object') {
+      const trainData = responseData.train as ApiResponse | undefined
+      if (trainData && hasModelTrainProgress(trainData)) {
+        const trainStage = (trainData.trainStage ?? 5) as 1 | 2 | 3 | 4 | 5
+        return (
+          <ModelTrainProgress
+            title={trainData.title}
+            stage={trainStage}
+            data={{
+              modelCode: trainData.modelCode,
+              method: trainData.method,
+              architecture: trainData.architecture,
+              currentEpoch: trainData.currentEpoch,
+              totalEpochs: trainData.totalEpochs,
+              progress: trainData.progress,
+              outputSize: trainData.outputSize,
+              fileLocation: trainData.fileLocation,
+              accuracy: trainData.accuracy,
+              ragIndex: trainData.ragIndex,
+              elapsedMs: trainData.elapsedMs,
+              targetRegistry: trainData.targetRegistry,
+              modelId: trainData.modelId,
+              version: trainData.version,
+              inferEndpoint: trainData.inferEndpoint,
+              fileSize: trainData.fileSize,
+              existsLocal: trainData.existsLocal,
+            }}
+          />
+        )
+      }
+    }
+    return <Text content="模型训练完成" />
   }
 
   // 响应内容（解析内部数据）

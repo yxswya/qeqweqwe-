@@ -51,36 +51,28 @@ const RagSimple: React.FC<{ message: Message }> = ({ message }) => {
       return
     }
 
+    // 保存当前状态后立即关闭弹窗
+    const title = ragTitle
+    const files = [...selectedFiles]
+    handleCloseModal()
+
     try {
-      // 构建 FormData 用于文件上传
-      const formData = new FormData()
-      formData.append('title', ragTitle)
-      selectedFiles.forEach((file) => {
-        formData.append('files', file)
-      })
-      // 添加 datasetFileMetas 作为 JSON 字符串
-      const datasetFileMetas = selectedFiles.map(file => ({
+      const datasetFileMetas = files.map(file => ({
         name: file.name,
         task_type: 'rag',
       }))
-      formData.append('datasetFileMetas', JSON.stringify(datasetFileMetas))
 
-      // 使用 fetch 直接发送 multipart/form-data
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/chat/rag/build/${sessionId}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token') || ''}`,
-        },
-        body: formData,
+      const response = await server.api.v1.chat.rag.build({ sessionId }).post({
+        title,
+        files: files as unknown as File[],
+        datasetFileMetas,
       })
 
-      if (response.ok) {
-        const data = await response.json()
-        console.log(data)
-        handleCloseModal()
+      if (response.status === 200) {
+        console.log(response.data)
       }
       else {
-        console.error('知识库构建失败:', response.status, await response.text())
+        console.error('知识库构建失败:', response.error)
       }
     }
     catch (error) {

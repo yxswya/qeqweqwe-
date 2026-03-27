@@ -1,63 +1,107 @@
 import type * as React from 'react'
-import type { Model } from '../../utils/elysia'
+import type { MessageResponse } from '../../utils/elysia'
+import { Brain, Database, ExternalLink } from 'lucide-react'
 import { Link } from 'react-router'
 import useStore from '../../store'
 
 const Products: React.FC = () => {
-  const messages = useStore(state => state.messages)
+  const messages = useStore(state => state.messages) as MessageResponse[]
   const sessionId = useStore(state => state.sessionId)
 
-  const rags = messages.reduce((pre, next) => {
-    pre.push(...(next?.rags || []))
-    return pre
-  }, [] as any[])
+  // 从消息中提取 rag 和 model（后端返回的是单数形式）
+  const rags = messages
+    .filter(msg => msg.rag)
+    .map(msg => msg.rag!)
 
-  const models = messages.reduce((pre, next) => {
-    pre.push(...(next?.models || []))
-    return pre
-  }, [] as Model[])
+  const models = messages
+    .filter(msg => msg.model)
+    .map(msg => msg.model!)
 
-  console.log(models)
+  const hasProducts = rags.length > 0 || models.length > 0
+
+  if (!hasProducts) {
+    return null
+  }
 
   return (
-    <div>
-      <div className="space-y-1.5">
-        {rags?.map((el, index) => (
-          <Link
-            key={el.id}
-            to={`/rag-answer/${el.indexVersion}/${sessionId}`}
-            className="flex items-center gap-2.5 p-2.5 rounded-lg hover:bg-blue-50 group transition-colors duration-150"
-          >
-            <span className="shrink-0 flex items-center justify-center w-5 h-5 text-xs font-semibold text-white bg-blue-500 rounded-full group-hover:bg-blue-600 transition-colors">
-              {index + 1}
+    <div className="space-y-3">
+      {/* 知识库列表 */}
+      {rags.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 px-1">
+            <Database className="w-4 h-4 text-indigo-500" />
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              知识库
             </span>
-            <span className="text-[15px] font-medium text-gray-700 group-hover:text-blue-700 transition-colors">
-              {el.indexVersion}
+            <span className="text-xs text-slate-400">
+              (
+              {rags.length}
+              )
             </span>
-            <svg className="w-3.5 h-3.5 text-gray-400 group-hover:text-blue-500 ml-auto transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </Link>
-        ))}
+          </div>
+          <div className="space-y-1.5">
+            {rags.map((rag, index) => (
+              <Link
+                key={rag.id}
+                to={`/rag-answer/${rag.id}/${sessionId}`}
+                className="group flex items-center gap-3 p-3 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-100/50 hover:border-indigo-200 hover:shadow-md transition-all duration-200"
+              >
+                <div className="flex items-center justify-center w-8 h-8 bg-indigo-100 rounded-lg group-hover:bg-indigo-200 transition-colors">
+                  <Database className="w-4 h-4 text-indigo-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-slate-700 group-hover:text-indigo-700 transition-colors truncate">
+                    {rag.title || `知识库 ${index + 1}`}
+                  </p>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    {rag.createdAt ? new Date(rag.createdAt).toLocaleDateString('zh-CN') : ''}
+                  </p>
+                </div>
+                <ExternalLink className="w-4 h-4 text-slate-300 group-hover:text-indigo-500 transition-colors" />
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
-        {models?.map((ele, index) => (
-          <Link
-            key={ele.id}
-            to={`/train-answer/${ele.externalId}/${sessionId}`}
-            className="flex items-center gap-2.5 p-2.5 rounded-lg hover:bg-blue-50 group transition-colors duration-150"
-          >
-            <span className="shrink-0 flex items-center justify-center w-5 h-5 text-xs font-semibold text-white bg-blue-500 rounded-full group-hover:bg-blue-600 transition-colors">
-              {index + 1}
+      {/* 模型列表 */}
+      {models.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 px-1">
+            <Brain className="w-4 h-4 text-emerald-500" />
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              训练模型
             </span>
-            <span className="text-[15px] font-medium text-gray-700 group-hover:text-blue-700 transition-colors">
-              {ele.externalId}
+            <span className="text-xs text-slate-400">
+              (
+              {models.length}
+              )
             </span>
-            <svg className="w-3.5 h-3.5 text-gray-400 group-hover:text-blue-500 ml-auto transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </Link>
-        ))}
-      </div>
+          </div>
+          <div className="space-y-1.5">
+            {models.map((model, index) => (
+              <Link
+                key={model.id}
+                to={`/train-answer/${model.id}/${sessionId}`}
+                className="group flex items-center gap-3 p-3 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl border border-emerald-100/50 hover:border-emerald-200 hover:shadow-md transition-all duration-200"
+              >
+                <div className="flex items-center justify-center w-8 h-8 bg-emerald-100 rounded-lg group-hover:bg-emerald-200 transition-colors">
+                  <Brain className="w-4 h-4 text-emerald-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-slate-700 group-hover:text-emerald-700 transition-colors truncate">
+                    {model.title || `模型 ${index + 1}`}
+                  </p>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    {model.createdAt ? new Date(model.createdAt).toLocaleDateString('zh-CN') : ''}
+                  </p>
+                </div>
+                <ExternalLink className="w-4 h-4 text-slate-300 group-hover:text-emerald-500 transition-colors" />
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

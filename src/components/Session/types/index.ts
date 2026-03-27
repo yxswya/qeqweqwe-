@@ -44,15 +44,15 @@ export interface ErrorContent {
 }
 
 /** 消息内容联合类型 */
-export type MessageContent =
-  | string
-  | TextContent
-  | LoadingContent
-  | ResponseContent
-  | RagBuildResponseContent
-  | ModelTrainResponseContent
-  | ErrorContent
-  | Record<string, any>
+export type MessageContent
+  = | string
+    | TextContent
+    | LoadingContent
+    | ResponseContent
+    | RagBuildResponseContent
+    | ModelTrainResponseContent
+    | ErrorContent
+    | Record<string, any>
 
 // ========================================
 // 类型守卫

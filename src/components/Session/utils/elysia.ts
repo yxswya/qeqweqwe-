@@ -37,8 +37,8 @@ export interface SelectSession {
 
 // 后端消息响应类型
 export interface MessageResponse extends SelectMessage {
-  rags?: { id: string, title: string, content: string }[]
-  models?: { id: string, title: string, content: string }[]
+  rag?: { id: string, title: string, content: string, createdAt?: Date }
+  model?: { id: string, title: string, content: string, createdAt?: Date }
 }
 
 // 后端文件响应类型

@@ -85,7 +85,6 @@ function Plane() {
       label: '产出',
       content: (
         <div>
-          <span>rag 构建产物</span>
           <Products />
         </div>
       ),
