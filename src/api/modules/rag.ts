@@ -9,6 +9,7 @@ export interface Rag {
   deletedAt: Date | null
   createdAt: Date
   updatedAt: Date
+  sessionId: string // 关联的会话ID
 }
 
 export const ragApi = {

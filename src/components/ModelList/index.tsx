@@ -47,7 +47,10 @@ const ModelCard: React.FC<{ model: Model }> = ({ model }) => {
       <div className="space-y-3">
         <div className="flex items-center gap-2 text-sm text-slate-600">
           <span className="text-slate-400">内容:</span>
-          <span className="truncate" title={model.content}>{model.content.slice(0, 50)}...</span>
+          <span className="truncate" title={model.content}>
+            {model.content.slice(0, 50)}
+            ...
+          </span>
         </div>
       </div>
 

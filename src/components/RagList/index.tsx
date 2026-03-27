@@ -18,8 +18,8 @@ const RagCard: React.FC<{ rag: Rag, isSelected?: boolean }> = ({ rag, isSelected
   const navigate = useNavigate()
 
   const handleClick = () => {
-    // 使用 rag.id 作为路由参数
-    navigate(`/rag-answer/${rag.id}`)
+    // 使用 sessionId 和 rag.id 作为路由参数
+    navigate(`/rag-answer/${rag.sessionId}/${rag.id}`)
   }
 
   return (
@@ -40,7 +40,8 @@ const RagCard: React.FC<{ rag: Rag, isSelected?: boolean }> = ({ rag, isSelected
         <div className="flex items-center gap-3">
           <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
             isSelected ? 'bg-emerald-500' : 'bg-emerald-100'
-          }`}>
+          }`}
+          >
             <Database className={`w-5 h-5 ${isSelected ? 'text-white' : 'text-emerald-600'}`} />
           </div>
           <div>
@@ -52,7 +53,8 @@ const RagCard: React.FC<{ rag: Rag, isSelected?: boolean }> = ({ rag, isSelected
         </div>
         <span className={`px-2 py-1 rounded-md text-xs font-medium ${
           isSelected ? 'bg-emerald-500 text-white' : 'bg-emerald-100 text-emerald-700'
-        }`}>
+        }`}
+        >
           RAG
         </span>
       </div>

@@ -15,7 +15,7 @@ export interface Model {
 export const modelApi = {
   // 获取所有模型列表 - 后端 GET /model/list/all
   getAllModels: async (): Promise<Model[]> => {
-    const response = await server.api.v1.model.list.all.get()
+    const response = await server.api.v1.model.list.get()
     return (response.data || []) as Model[]
   },
 
