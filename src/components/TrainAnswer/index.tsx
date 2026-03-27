@@ -3,64 +3,98 @@ import { useParams } from 'react-router'
 import { server } from '@/api/modules/session'
 import { ChatMain, ConversationList, type Conversation, type Message } from './components'
 
-// 模型数据类型（从 API 返回）
+// 模型使用提示
+interface UsageHint {
+  env: Record<string, string>
+  cli_example: string
+}
+
+// 注册的模型信息（存储在 content 字段中的 JSON）
+interface RegisteredModel {
+  id: string // externalId，用于模型预测
+  model_uri: string
+  task: string
+  model_type: string
+  note: string
+  exists_local: boolean
+  file_size: number
+  mtime: string
+  created_at: string
+  usage_hint: UsageHint
+}
+
+// 模型注册响应内容
+interface ModelContent {
+  answer: RegisteredModel
+  confidence: number
+  sources: string[]
+  error: string | null
+}
+
+// 模型数据类型（从 API 返回，匹配后端 SelectModel）
 interface ModelItem {
   id: string
-  sessionId: string
+  title: string
   messageId: string
-  trainId: string | null
-  externalId: string
-  modelUri: string
-  task: string
-  modelType: string
-  note: string | null
-  existsLocal: boolean | null
-  fileSize: number | null
-  mtime: string | null
-  externalCreatedAt: string | null
-  createdAt: string | Date
+  content: string // JSON 字符串，需要解析为 ModelContent
+  deletedAt: Date | null
+  createdAt: Date | null
+  updatedAt: Date | null
 }
 
 interface ModelPredictResponse {
-  code: number
-  message: string
-  data: {
-    answer: {
-      model_uri: string
-      task: string
-      prompt: string
-      text: string
-      max_new_tokens: number
-      temperature: number
-    }
-    confidence: number
-    sources: string[]
-    error: string | null
+  answer: {
+    model_uri: string
+    task: string
+    prompt: string
+    text: string
+    max_new_tokens: number
+    temperature: number
   }
-  trace_id: string
+  confidence: number
+  sources: string[]
+  error: string | null
+}
+
+// 解析模型 content 字段
+function parseModelContent(contentStr: string): ModelContent | null {
+  try {
+    return JSON.parse(contentStr)
+  }
+  catch {
+    console.error('Failed to parse model content:', contentStr)
+    return null
+  }
 }
 
 // 将模型数据转换为 Conversation 格式
-function modelToConversation(model: ModelItem, index: number): Conversation {
+function modelToConversation(model: ModelItem, index: number): Conversation | null {
   const avatarClasses = ['a1', 'a2', 'a3', 'a4', 'a5', 'a6']
-  const createdAt = model.createdAt instanceof Date ? model.createdAt : new Date(model.createdAt)
   const time = model.createdAt
-    ? createdAt.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+    ? new Date(model.createdAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
     : '刚刚'
 
-  // 从 modelUri 中提取模型名称
-  const modelName = model.modelUri.split('/').pop() || model.modelUri
+  // 解析 content 字段获取模型信息
+  const content = parseModelContent(model.content)
+  if (!content?.answer?.id) {
+    console.warn('Model item missing externalId:', model.id)
+    return null
+  }
+
+  const registeredModel = content.answer
+  // 从 model_uri 中提取模型名称
+  const modelName = registeredModel.model_uri.split('/').pop() || registeredModel.model_uri
 
   return {
     id: model.id,
-    name: model.note || modelName || `模型 ${index + 1}`,
-    avatar: (model.note || modelName)?.charAt(0) || '模',
+    name: model.title || registeredModel.note || modelName || `模型 ${index + 1}`,
+    avatar: (model.title || registeredModel.note || modelName)?.charAt(0) || '模',
     avatarClass: avatarClasses[index % avatarClasses.length],
-    preview: `${model.task} - ${model.modelType}`,
+    preview: `${registeredModel.task} - ${registeredModel.model_type}`,
     time,
-    online: model.existsLocal ?? true,
-    externalId: model.externalId,
-    modelUri: model.modelUri,
+    online: registeredModel.exists_local ?? true,
+    externalId: registeredModel.id,
+    modelUri: registeredModel.model_uri,
   }
 }
 
@@ -103,14 +137,22 @@ function TrainAnswer() {
         const response = await server.api.v1.model.list({ sessionId }).get()
         if (response.data) {
           const modelList = response.data as ModelItem[]
-          const convList = modelList.map((model, index) => modelToConversation(model, index))
+          // 过滤掉解析失败的模型项
+          const convList = modelList
+            .map((model, index) => modelToConversation(model, index))
+            .filter((c): c is Conversation => c !== null)
           setConversations(convList)
 
-          // 如果有 id 参数，选中对应的模型
+          // 如果有 id 参数，选中对应的模型（通过 id 匹配）
           if (params.id) {
-            const targetConv = convList.find(c => c.id === params.id || c.externalId === params.id)
+            const targetConv = convList.find(c => c.id === params.id)
             if (targetConv) {
               setActiveConversation(targetConv.id)
+              setMessages([createWelcomeMessage()])
+            }
+            else if (convList.length > 0) {
+              // 如果没找到匹配的，默认选中第一个
+              setActiveConversation(convList[0].id)
               setMessages([createWelcomeMessage()])
             }
           }
@@ -179,10 +221,10 @@ function TrainAnswer() {
 
       const data = response.data as ModelPredictResponse
 
-      if (data.code === 0 && data.data?.answer?.text) {
+      if (data?.answer?.text) {
         const aiMessage: Message = {
           id: Date.now() + 1,
-          content: data.data.answer.text,
+          content: data.answer.text,
           isUser: false,
           timestamp: new Date().toLocaleTimeString('zh-CN', {
             hour: '2-digit',
@@ -202,7 +244,7 @@ function TrainAnswer() {
       else {
         const errorMessage: Message = {
           id: Date.now() + 1,
-          content: `抱歉，出现了错误：${data.message || '未知错误'}`,
+          content: `抱歉，出现了错误：${data.error || '未知错误'}`,
           isUser: false,
           timestamp: new Date().toLocaleTimeString('zh-CN', {
             hour: '2-digit',
