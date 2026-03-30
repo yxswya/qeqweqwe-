@@ -223,8 +223,31 @@ export const useStore = create<{
       status: 'loading',
     })
 
+    // 如果 sessionId 不存在，先创建会话
+    let currentSessionId = sessionId
+    if (!currentSessionId) {
+      try {
+        const response = await server.api.v1.session.create.post({})
+        if (response.data) {
+          currentSessionId = response.data.id
+          set({ sessionId: currentSessionId })
+          // 创建会话后初始化 SSE 连接
+          get().initConversation(currentSessionId)
+        }
+        else {
+          setStatus({ status: 'input' })
+          return
+        }
+      }
+      catch (error) {
+        console.error('创建会话失败:', error)
+        setStatus({ status: 'input' })
+        return
+      }
+    }
+
     // 调用后端 POST /chat/completion/:sessionId
-    server.api.v1.chat.completion({ sessionId }).post({ prompt: text }).then((response) => {
+    server.api.v1.chat.completion({ sessionId: currentSessionId }).post({ prompt: text }).then((response) => {
       console.log('back', response)
       if (response.data) {
         // 处理响应...

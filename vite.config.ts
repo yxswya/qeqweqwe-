@@ -17,7 +17,7 @@ export default defineConfig(({ mode }) => {
     ],
     build: {
       outDir: mode === 'development' ? 'dist/development' : 'dist',
-      emptyOutDir: mode !== 'development',
+      emptyOutDir: true,
     },
     resolve: {
       alias: {
